@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TOKYO_DB</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tokyo: {
+          bg: '#f8f5f0', panel: 'rgba(255,252,248,0.92)',
+          sakura: '#e8728a', red: '#c0392b', gold: '#c8a84b',
+          green: '#2d7a4e', indigo: '#3d4a8a', ink: '#0c0818',
+          mist: '#e8e4df', paper: '#faf8f4', bamboo: '#8fbc8f',
+          torii: '#d04020', night: '#0f0f23'
+        }
+      },
+      fontFamily: {
+        display: ['"Noto Serif JP"', 'serif'],
+        body: ['"Noto Sans JP"', 'sans-serif'],
+        mono: ['"Share Tech Mono"', 'monospace']
+      }
+    }
+  }
+}
+</script>
+<style>
+:root {
+  --sakura: #e8728a; --torii: #d04020; --gold: #c8a84b;
+  --bamboo: #2d7a4e; --indigo: #3d4a8a; --ink: #ede8f5;
+  --mist: #231840; --paper: #160e2a; --night: #0f0f23;
+  --neon-blue: #3d4a8a; --neon-red: #c0392b; --neon-green: #2d7a4e;
+  --neon-gold: #c8a84b; --neon-purple: #7b4a8a; --neon-omega: #e8728a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: #0c0818;
+  color: #ede8f5;
+  overflow: hidden;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* ── SCROLLBAR ── */
+
+/* ── HANAMI KOYU PEMBE TEMA ── */
+body.theme-light #app-sidebar {
+  background: linear-gradient(180deg, #220a18 0%, #1a0614 100%) !important;
+  border-right-color: rgba(249,168,212,0.2) !important;
+}
+body.theme-light .nav-link { color: rgba(252,231,243,0.45) !important; }
+body.theme-light .nav-link:hover, body.theme-light .nav-link.active { color: #f9a8d4 !important; }
+body.theme-light #main-content { background: #1a0614 !important; }
+body.theme-light .washi-panel {
+  background: rgba(45,10,30,0.95) !important;
+  border-color: rgba(249,168,212,0.25) !important;
+}
+body.theme-light .glass-panel {
+  background: rgba(45,10,30,0.7) !important;
+  border-color: rgba(249,168,212,0.15) !important;
+}
+body.theme-light .cyber-card, body.theme-light .tokyo-card {
+  background: rgba(45,10,30,0.8) !important;
+  border-color: rgba(249,168,212,0.15) !important;
+}
+body.theme-light .cyber-card:hover, body.theme-light .tokyo-card:hover {
+  border-color: rgba(249,168,212,0.5) !important;
+  box-shadow: 0 0 20px rgba(249,168,212,0.15) !important;
+}
+body.theme-light input, body.theme-light textarea, body.theme-light select {
+  background: rgba(45,10,30,0.8) !important;
+  color: #fce7f3 !important;
+  border-color: rgba(249,168,212,0.25) !important;
+}
+body.theme-light #tab-bar {
+  background: #220a18 !important;
+  border-color: rgba(249,168,212,0.2) !important;
+}
+body.theme-light .tab-item { color: rgba(252,231,243,0.4) !important; background: rgba(45,10,30,0.5) !important; }
+body.theme-light .tab-item.active { color: #f9a8d4 !important; background: rgba(45,10,30,0.95) !important; border-bottom-color: #f9a8d4 !important; }
+body.theme-light #ticker-wrap { background: #220a18 !important; border-color: rgba(249,168,212,0.2) !important; }
+body.theme-light .petal { background: rgba(249,168,212,0.5) !important; }
+body.theme-light .torii-divider { background: linear-gradient(90deg,transparent,#f9a8d4,#f0abfc,#f9a8d4,transparent) !important; }
+/* Stat kartları */
+body.theme-light .stat-card, body.theme-light [class*="stat"] {
+  background: rgba(45,10,30,0.6) !important;
+  border-color: rgba(249,168,212,0.2) !important;
+}
+/* Scrollbar */
+body.theme-light ::-webkit-scrollbar-thumb { background: rgba(249,168,212,0.3) !important; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--mist); }
+::-webkit-scrollbar-thumb { background: var(--sakura); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--torii); }
+
+/* ── CUSTOM CURSOR ── */
+*,*::before,*::after { cursor: none !important; }
+#profile-fullscreen { cursor: auto !important; }
+#profile-fullscreen button, #profile-fullscreen a, #profile-fullscreen [onclick] { cursor: pointer !important; }
+input, textarea, select { cursor: text !important; }
+input[type=checkbox], input[type=radio] { cursor: pointer !important; }
+
+#custom-cursor { position:fixed;pointer-events:none;z-index:99999;top:0;left:0;transition:opacity .2s; }
+@keyframes cursor-spin-colors {
+  0%   { border-color: #e8728a; box-shadow: 0 0 8px #e8728a40; transform: translate(-50%,-50%) rotate(0deg); }
+  25%  { border-color: #c8a84b; box-shadow: 0 0 8px #c8a84b40; transform: translate(-50%,-50%) rotate(90deg); }
+  50%  { border-color: #7b4a8a; box-shadow: 0 0 8px #7b4a8a40; transform: translate(-50%,-50%) rotate(180deg); }
+  75%  { border-color: #2d7a4e; box-shadow: 0 0 8px #2d7a4e40; transform: translate(-50%,-50%) rotate(270deg); }
+  100% { border-color: #e8728a; box-shadow: 0 0 8px #e8728a40; transform: translate(-50%,-50%) rotate(360deg); }
+}
+@keyframes cursor-dot-pulse {
+  0%,100% { background:#e8728a; box-shadow:0 0 8px #e8728a; }
+  33%     { background:#c8a84b; box-shadow:0 0 8px #c8a84b; }
+  66%     { background:#7b4a8a; box-shadow:0 0 8px #7b4a8a; }
+}
+#cursor-outer {
+  position:absolute; width:28px; height:28px;
+  border: 1.5px solid var(--sakura);
+  border-radius: 4px;
+  transform: translate(-50%,-50%);
+  transition: width .15s, height .15s, opacity .2s;
+  opacity: 0.75;
+  animation: cursor-spin-colors 4s linear infinite;
+}
+#cursor-inner {
+  position:absolute; width:5px; height:5px;
+  background: var(--torii); border-radius: 50%;
+  transform: translate(-50%,-50%);
+  transition: transform .08s;
+  animation: cursor-dot-pulse 4s linear infinite;
+}
+#cursor-petal {
+  position:absolute; font-size: 13px;
+  transform: translate(-50%, -140%);
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+body.cursor-hover #cursor-outer {
+  width:40px; height:40px; border-radius:50%;
+  border-color: var(--torii); opacity:1;
+  animation: none;
+  box-shadow: 0 0 12px var(--torii);
+  transform: translate(-50%,-50%) rotate(0deg);
+}
+body.cursor-hover #cursor-inner { transform:translate(-50%,-50%) scale(2); background:var(--torii); animation:none; }
+body.cursor-hover #cursor-petal { opacity: 0; }
+body.cursor-click #cursor-inner { transform:translate(-50%,-50%) scale(0.3); }
+body.cursor-click #cursor-outer { width:16px; height:16px; opacity:1; animation:none; }
+
+/* ── SAKURA PETALS BACKGROUND ── */
+.petal-container { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden; }
+.petal {
+  position:absolute; top:-20px;
+  width:8px; height:10px;
+  background: linear-gradient(135deg, #f0c0d8 0%, #e060a0 60%, #c840c0 100%);
+  border-radius: 50% 0 50% 0;
+  opacity: 0.4;
+  animation: petalFall linear infinite;
+}
+@keyframes petalFall {
+  0%   { transform: translateX(0) rotate(0deg) translateY(0); opacity:0.6; }
+  50%  { transform: translateX(30px) rotate(180deg) translateY(50vh); opacity:0.4; }
+  100% { transform: translateX(-20px) rotate(360deg) translateY(102vh); opacity:0; }
+}
+
+/* ── PAPER TEXTURE PANELS ── */
+.washi-panel {
+  background: #f5f0e8;
+  border: 1px solid rgba(200,168,75,0.35);
+  box-shadow: 0 2px 16px rgba(26,26,46,0.10), inset 0 0 0 1px rgba(232,114,138,0.06);
+  backdrop-filter: blur(4px);
+  position: relative;
+}
+.washi-panel::before {
+  content:''; position:absolute; inset:0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+  pointer-events: none; z-index:0; border-radius: inherit;
+}
+
+/* ── HEADER PANEL ── */
+#app-header {
+  background: linear-gradient(135deg, #0c0818 0%, #1a0a28 60%, #0f0a20 100%);
+  border-bottom: 2px solid var(--gold);
+  box-shadow: 0 2px 20px rgba(200,168,75,0.2), 0 0 60px rgba(208,64,32,0.05);
+  position: relative;
+}
+#app-header::after {
+  content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, var(--sakura), var(--gold), var(--sakura), transparent);
+  opacity: 0.5;
+}
+.header-logo-ja {
+  font-family: 'Noto Serif JP', serif;
+  font-weight:900; letter-spacing:0.1em;
+  background: linear-gradient(135deg, #f0c040, #e8728a, #d04020);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-shadow: none;
+}
+
+/* ── SIDEBAR ── */
+#app-sidebar {
+  background: linear-gradient(180deg, #0c0818 0%, #110820 100%);
+  border-right: 1px solid rgba(200,168,75,0.2);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+}
+.nav-link {
+  display:flex; align-items:center; gap:10px;
+  padding: 8px 16px; font-family:'Noto Sans JP',sans-serif;
+  font-size:11px; letter-spacing:0.05em; text-transform:uppercase;
+  color: rgba(255,255,255,0.45); border-left: 2px solid transparent;
+  transition: all .2s; cursor:pointer; white-space:nowrap;
+  position: relative; overflow: hidden;
+}
+.nav-link::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:0;
+  background: linear-gradient(90deg, rgba(232,114,138,0.15), transparent);
+  transition: width .25s;
+}
+.nav-link:hover { color: rgba(255,255,255,0.9); }
+.nav-link:hover::before { width:100%; }
+.nav-link.active { color:#fff; border-left-color: var(--sakura); }
+.nav-link.active::before { width:100%; }
+.nav-link.active-red   { border-left-color: var(--torii);  }
+.nav-link.active-gold  { border-left-color: var(--gold);   }
+.nav-link.active-green { border-left-color: var(--bamboo); }
+
+/* ── TOKYO CARD ── */
+.tokyo-card {
+  background: var(--paper);
+  border: 1px solid rgba(200,168,75,0.2);
+  border-top: 3px solid var(--sakura);
+  box-shadow: 0 4px 16px rgba(26,26,46,0.06);
+  transition: all .25s;
+  position: relative; overflow: hidden;
+}
+.tokyo-card::after {
+  content:''; position:absolute; top:0; right:0;
+  width:20px; height:20px;
+  background: linear-gradient(225deg, rgba(200,168,75,0.15) 50%, transparent 50%);
+}
+.tokyo-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(232,114,138,0.15); border-color:rgba(232,114,138,0.4); }
+
+/* ── BUTTONS ── */
+.tokyo-btn {
+  background: transparent;
+  border: 1px solid var(--indigo); color: var(--indigo);
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  letter-spacing:1px; text-transform:uppercase;
+  padding: 6px 14px; cursor: pointer;
+  transition: all .2s; position: relative; overflow:hidden;
+  clip-path: polygon(0 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%);
+}
+.tokyo-btn:hover { background:var(--indigo); color:#fff; box-shadow:0 0 14px rgba(61,74,138,0.4); }
+.tokyo-btn.danger { border-color: var(--torii); color: var(--torii); }
+.tokyo-btn.danger:hover { background: var(--torii); color:#fff; box-shadow: 0 0 14px rgba(208,64,32,0.4); }
+.tokyo-btn.sakura { border-color: var(--sakura); color: var(--sakura); }
+.tokyo-btn.sakura:hover { background: var(--sakura); color:#fff; box-shadow: 0 0 14px rgba(232,114,138,0.4); }
+.tokyo-btn.gold { border-color: var(--gold); color: var(--gold); }
+.tokyo-btn.gold:hover { background: var(--gold); color:#fff; }
+
+/* ── INPUTS ── */
+input:not([type=radio]):not([type=checkbox]), select, textarea {
+  background: rgba(248,245,240,0.8);
+  border: 1px solid rgba(200,168,75,0.3);
+  color: var(--ink); font-family:'Share Tech Mono',monospace;
+  padding: 0.5rem; outline:none; width:100%; transition: all .2s;
+}
+input:not([type=radio]):not([type=checkbox]):focus,select:focus,textarea:focus {
+  border-color: var(--sakura); box-shadow: 0 0 8px rgba(232,114,138,0.15);
+  background: white;
+}
+
+/* ── THREAT & HEAT BADGES ── */
+.threat-Omega { color:#b026ff; font-weight:900; text-shadow:0 0 8px rgba(176,38,255,0.5); animation:pulse-omega 2s infinite; }
+.threat-Extreme { color: var(--torii); font-weight:700; }
+.threat-High { color: #c0392b; }
+.threat-Medium { color: #d4830a; }
+.threat-Low { color: var(--bamboo); }
+.heat-Clean { color: var(--bamboo); }
+.heat-Low { color: #d4830a; }
+.heat-Medium { color: #c0392b; }
+.heat-High { color: var(--torii); font-weight:700; }
+.heat-Most_Wanted { color:#fff; background:var(--torii); padding:0 4px; animation:siren-pulse 1s infinite alternate; }
+.status-deceased { color:#999; text-decoration:line-through; opacity:0.6; }
+
+@keyframes pulse-omega { 0%,100%{opacity:.8} 50%{opacity:1;text-shadow:0 0 16px rgba(176,38,255,1)} }
+@keyframes siren-pulse { 0%{box-shadow:0 0 5px var(--torii)} 100%{box-shadow:0 0 18px var(--torii),inset 0 0 8px #000} }
+
+/* ── REP BARS ── */
+.rep-bar-track { height:4px; background:rgba(0,0,0,0.08); border-radius:2px; overflow:hidden; flex:1; }
+.rep-bar-fill { height:100%; border-radius:2px; transition:width .6s ease; }
+.rep-org-row { display:flex; align-items:center; gap:8px; font-family:'Share Tech Mono',monospace; font-size:10px; }
+.rep-score-badge { font-family:'Share Tech Mono',monospace; font-size:11px; font-weight:900; min-width:32px; text-align:right; }
+.rep-unknown { color:#9ca3af } .rep-street { color:#9ca3af }
+.rep-known { color:#3d4a8a } .rep-notorious { color:#c8a84b }
+.rep-legendary { color:#c0392b } .rep-mythic { color:#b026ff; text-shadow:0 0 10px rgba(176,38,255,.7) }
+
+/* ── TAB BAR ── */
+#tab-bar {
+  display:flex; align-items:stretch; gap:2px;
+  background:rgba(26,26,46,0.04);
+  border-bottom: 1px solid rgba(200,168,75,0.2);
+  padding:0 8px; min-height:34px; overflow-x:auto; flex-shrink:0; scrollbar-width:none;
+}
+#tab-bar::-webkit-scrollbar { display:none; }
+.tab-item {
+  display:flex; align-items:center; gap:6px;
+  padding:0 12px; font-family:'Share Tech Mono',monospace;
+  font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  white-space:nowrap; cursor:pointer; border-bottom:2px solid transparent;
+  color:#9ca3af; transition: all .15s; min-width:80px; flex-shrink:0; user-select:none;
+}
+.tab-item:hover { color:#0c0818; background:rgba(232,114,138,0.05); }
+.tab-item.active { color: var(--ink); border-bottom-color: var(--sakura); background:rgba(232,114,138,0.06); }
+.tab-item.tab-contracts.active { border-bottom-color:var(--torii); background:rgba(208,64,32,0.05); }
+.tab-item.tab-cases.active { border-bottom-color:var(--gold); background:rgba(200,168,75,0.05); }
+.tab-item.tab-radar.active { border-bottom-color:var(--bamboo); background:rgba(45,122,78,0.05); }
+.tab-icon { font-size:9px; flex-shrink:0; opacity:.6; }
+.tab-label { flex:1; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.tab-close { width:14px; height:14px; display:flex; align-items:center; justify-content:center; border-radius:2px; opacity:0; font-size:9px; color:#9ca3af; flex-shrink:0; transition:all .15s; }
+.tab-item:hover .tab-close, .tab-item.active .tab-close { opacity:1; }
+.tab-close:hover { background:rgba(208,64,32,.2); color:var(--torii); }
+
+/* ── LIVE TICKER ── */
+#live-ticker-wrap {
+  background: linear-gradient(135deg, #0c0818, #2d1a0e);
+  border-bottom: 1px solid rgba(200,168,75,0.2);
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  letter-spacing:.06em; overflow:hidden; height:24px;
+  display:flex; align-items:center;
+}
+.ticker-label {
+  background: var(--torii); color:#fff; padding:0 10px;
+  font-size:9px; font-weight:700; letter-spacing:.15em;
+  flex-shrink:0; height:100%; display:flex; align-items:center;
+}
+@keyframes ticker-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.ticker-scroll { display:flex; width:max-content; animation:ticker-scroll 200s linear infinite; white-space:nowrap; }
+.ticker-scroll:hover { animation-play-state:paused; }
+
+/* ── SYNC INDICATOR ── */
+#sync-indicator { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.1em; transition:color .3s; min-width:70px; }
+
+/* ── TOAST ── */
+#save-toast {
+  position:fixed; bottom:48px; right:24px;
+  background: var(--paper); border: 1px solid var(--bamboo);
+  box-shadow: 0 0 20px rgba(45,122,78,0.2);
+  color: var(--bamboo); font-family:'Share Tech Mono',monospace;
+  font-size:11px; letter-spacing:.08em; padding:10px 18px;
+  z-index:99998; transform:translateY(80px); opacity:0;
+  transition:transform .3s,opacity .3s; pointer-events:none;
+  display:flex; align-items:center; gap:8px; border-radius:2px;
+}
+#save-toast.show { transform:translateY(0); opacity:1; }
+#save-toast.error { border-color:var(--torii); box-shadow:0 0 20px rgba(208,64,32,.2); color:var(--torii); }
+
+/* ── AUDIT ENTRIES ── */
+.audit-entry { border-left:2px solid; padding:6px 10px; font-family:'Share Tech Mono',monospace; font-size:10px; background:rgba(0,0,0,0.03); margin-bottom:2px; }
+.audit-entry.type-create { border-color:var(--bamboo); }
+.audit-entry.type-edit   { border-color:var(--indigo);  }
+.audit-entry.type-delete { border-color:var(--torii);   }
+.audit-entry.type-login  { border-color:var(--gold);    }
+.audit-entry.type-system { border-color:#9ca3af; }
+
+/* ── BANK CARD ── */
+.bank-account-card { background:rgba(248,245,240,.8); border:1px solid rgba(200,168,75,.25); padding:10px 14px; font-family:'Share Tech Mono',monospace; font-size:11px; position:relative; }
+.bank-account-card:hover { border-color:rgba(200,168,75,.5); }
+
+/* ── STATUS NOTE BANNER ── */
+.status-note-banner { position:absolute; top:0; left:0; right:0; padding:3px 8px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:bold; text-transform:uppercase; letter-spacing:.08em; z-index:5; text-align:center; backdrop-filter:blur(4px); border-bottom:1px solid rgba(0,0,0,.1); }
+
+/* ── MAP PINS ── */
+.map-pin { position:absolute; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); cursor:pointer; transition:transform .2s; z-index:10; }
+.map-pin:hover { transform:translate(-50%,-50%) scale(1.5); z-index:20; }
+.map-ring { position:absolute; top:-50%; left:-50%; width:200%; height:200%; border:1px solid; border-radius:50%; animation:pulse-omega 2s infinite; pointer-events:none; }
+.map-tooltip { display:none; position:absolute; top:-25px; left:50%; transform:translateX(-50%); background:rgba(12,8,24,.95); border:1px solid; color:#e2e8f0; padding:4px 8px; font-size:10px; font-family:'Share Tech Mono'; white-space:nowrap; pointer-events:none; }
+.map-pin:hover .map-tooltip { display:block; }
+.map-avatar-pin { position:absolute; transform:translate(-50%,-100%); cursor:pointer; z-index:10; transition:transform .15s; }
+.map-avatar-pin:hover { transform:translate(-50%,-100%) scale(1.15); z-index:20; }
+.map-avatar-ring { width:36px; height:36px; border-radius:50%; border:2px solid; overflow:hidden; position:relative; }
+.map-avatar-img { width:100%; height:100%; object-fit:cover; display:block; }
+.map-avatar-dot { width:6px; height:6px; border-radius:50%; margin:2px auto 0; }
+.map-avatar-pin .map-tooltip { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:rgba(12,8,24,.95); border:1px solid; padding:4px 8px; font-family:'Share Tech Mono',monospace; font-size:10px; white-space:nowrap; pointer-events:none; z-index:30; min-width:100px; display:flex; flex-direction:column; gap:2px; }
+.map-avatar-pin:hover .map-tooltip { display:flex; }
+.map-tooltip-threat { font-size:9px; text-transform:uppercase; letter-spacing:.1em; }
+.map-event-pin { position:absolute; transform:translate(-50%,-100%); cursor:pointer; z-index:12; transition:transform .15s; }
+.map-event-pin:hover { transform:translate(-50%,-100%) scale(1.2); }
+.map-event-icon { width:32px; height:32px; border-radius:50%; background:rgba(200,168,75,.15); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--gold); box-shadow:0 0 10px rgba(200,168,75,.4); }
+.map-event-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); margin:2px auto 0; box-shadow:0 0 6px var(--gold); }
+.map-event-pin .map-tooltip { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:rgba(12,8,24,.95); border:1px solid var(--gold); padding:4px 8px; font-family:'Share Tech Mono',monospace; font-size:10px; white-space:nowrap; z-index:30; }
+.map-event-pin:hover .map-tooltip { display:block; }
+
+/* ── PROFILE FULLSCREEN ── */
+#profile-fullscreen { position:fixed; inset:0; z-index:9990; cursor:auto!important; background:var(--paper); overflow-y:auto; display:none; }
+
+/* ── CYBER RADIO/CHECKBOX ── */
+.cyber-radio { appearance:none; -webkit-appearance:none; width:14px; height:14px; border:1px solid rgba(61,74,138,.5); background:rgba(248,245,240,.5); border-radius:2px; display:grid; place-content:center; cursor:pointer; margin:0; padding:0; transition:all .2s; flex-shrink:0; }
+.cyber-radio::before { content:""; width:8px; height:8px; background:var(--sakura); transform:scale(0); transition:120ms transform ease-in-out; box-shadow:0 0 6px var(--sakura); }
+.cyber-radio:checked { border-color:var(--sakura); }
+.cyber-radio:checked::before { transform:scale(1); }
+.cyber-checkbox { appearance:none; -webkit-appearance:none; width:18px; height:18px; border:1px solid rgba(61,74,138,.4); background:rgba(248,245,240,.7); border-radius:2px; display:inline-grid; place-content:center; cursor:pointer; transition:all .2s; flex-shrink:0; }
+.cyber-checkbox::before { content:"\f00d"; font-family:"Font Awesome 6 Free"; font-weight:900; font-size:12px; color:var(--torii); transform:scale(0); transition:120ms transform ease-in-out; }
+.cyber-checkbox:checked { border-color:var(--torii); box-shadow:0 0 8px rgba(208,64,32,.2); }
+.cyber-checkbox:checked::before { transform:scale(1); }
+
+/* ── GRID BG ── */
+.bg-grid { background-image: linear-gradient(rgba(176,100,200,.07) 1px,transparent 1px), linear-gradient(90deg,rgba(176,100,200,.07) 1px,transparent 1px); background-size:36px 36px; background-color: #0c0818; }
+
+/* ── CHAR SELECT CHECKBOXES ── */
+.char-select-cb { position:absolute; top:6px; right:6px; width:16px; height:16px; cursor:pointer; z-index:10; accent-color:var(--sakura); display:none; }
+body.bulk-mode .char-select-cb { display:block; }
+body.bulk-mode .tokyo-card.selected { outline:2px solid var(--sakura); }
+
+/* ── BACKUP INDICATOR ── */
+#backup-indicator { position:fixed; bottom:28px; right:12px; font-family:'Share Tech Mono',monospace; font-size:9px; color:#ccc; transition:color .3s,opacity .3s; z-index:50; pointer-events:none; letter-spacing:.05em; }
+#backup-indicator.active { color:var(--bamboo); }
+
+/* ── THEME BTN ── */
+.theme-btn { width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform .15s,border-color .15s; flex-shrink:0; }
+.theme-btn:hover { transform:scale(1.25); }
+.theme-btn.active { border-color:var(--ink); transform:scale(1.2); }
+
+/* ── MOBILE ── */
+#mobile-tabbar { display:none; position:fixed; bottom:0; left:0; right:0; z-index:9995; background:rgba(12,8,24,0.97); border-top:1px solid rgba(200,168,75,.3); height:56px; backdrop-filter:blur(10px); }
+#mobile-tabbar button { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:rgba(255,255,255,.4); font-size:9px; font-family:'Share Tech Mono',monospace; letter-spacing:.05em; text-transform:uppercase; border:none; background:none; padding:4px 0; cursor:pointer; transition:color .15s; border-top:2px solid transparent; }
+#mobile-tabbar button.active, #mobile-tabbar button:hover { color:var(--sakura); border-top-color:var(--sakura); }
+#mobile-tabbar button i { font-size:16px; }
+#mobile-menu-btn { display:none; }
+#mobile-sidebar-overlay { display:none; position:fixed; inset:0; z-index:9996; background:rgba(0,0,0,.6); }
+#mobile-sidebar-overlay.open { display:block; }
+#mobile-sidebar-panel { position:fixed; left:0; top:0; bottom:0; width:80vw; max-width:280px; z-index:9997; transform:translateX(-100%); transition:transform .25s ease; background:rgba(12,8,24,.99); border-right:1px solid rgba(200,168,75,.2); overflow-y:auto; }
+#mobile-sidebar-panel.open { transform:translateX(0); }
+@media(max-width:768px) {
+  aside { display:none!important; }
+  #mobile-menu-btn { display:flex!important; }
+  #mobile-tabbar { display:flex!important; }
+  #main-content { width:100%; padding-bottom:64px; }
+  .view-section { padding:8px; }
+  #char-modal > div { border-radius:0; min-height:100vh; margin:0; }
+  #custom-cursor { display:none!important; }
+  body { cursor:auto!important; }
+  * { cursor:auto!important; }
+}
+@media(max-width:480px) {
+  header h1, header .font-display { font-size:14px; }
+}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-container { background: #0c0818 !important; }
+.leaflet-popup-content-wrapper { background:rgba(12,8,24,.97); color:#e2e8f0; border:1px solid var(--gold); border-radius:2px; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+.leaflet-popup-tip { background:rgba(12,8,24,.97); }
+
+/* ── JAPANESE DECORATIVE ── */
+.torii-divider { height:2px; background:linear-gradient(90deg,transparent,var(--torii),var(--gold),var(--torii),transparent); margin:12px 0; opacity:.5; }
+.section-header-ja { font-family:'Noto Serif JP',serif; font-weight:700; position:relative; padding-bottom:8px; color:var(--ink); }
+.section-header-ja::after { content:''; position:absolute; bottom:0; left:0; width:40px; height:2px; background:var(--sakura); }
+
+/* ── GECE MODUNDA harita overlay ── */
+#radar-map-container {
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+#radar-map-container .map-night-overlay {
+  position:absolute; inset:0; z-index:400;
+  background: linear-gradient(180deg, rgba(15,15,35,.0) 0%, rgba(15,15,35,.15) 100%);
+  pointer-events:none;
+}
+
+/* ── COMPAT: cyber-* → tokyo tema ── */
+.glass-panel { background:var(--paper); border:1px solid rgba(200,168,75,0.2); box-shadow:0 2px 12px rgba(26,26,46,0.06); }
+.cyber-card { background:var(--paper); border:1px solid rgba(200,168,75,0.2); box-shadow:0 4px 16px rgba(26,26,46,0.06); transition:all .25s; position:relative; overflow:hidden; }
+.cyber-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(232,114,138,0.15); }
+.cyber-button { background:transparent; border:1px solid var(--indigo); color:var(--indigo); font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:6px 14px; cursor:pointer; transition:all .2s; clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%); }
+.cyber-button:hover { background:var(--indigo); color:#fff; box-shadow:0 0 14px rgba(61,74,138,0.4); }
+.cyber-border { position:relative; }
+.cyber-border::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; border:1px solid var(--sakura); clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%); pointer-events:none; }
+.text-cyber-blue   { color:var(--indigo)  !important; }
+.text-cyber-red    { color:var(--torii)   !important; }
+.text-cyber-green  { color:var(--bamboo)  !important; }
+.text-cyber-gold   { color:var(--gold)    !important; }
+.text-cyber-omega  { color:var(--sakura)  !important; }
+.text-cyber-purple { color:var(--indigo)  !important; }
+.border-cyber-blue  { border-color:var(--indigo)  !important; }
+.border-cyber-red   { border-color:var(--torii)   !important; }
+.border-cyber-green { border-color:var(--bamboo)  !important; }
+.border-cyber-gold  { border-color:var(--gold)    !important; }
+.bg-cyber-blue\/10  { background:rgba(61,74,138,.10) !important; }
+.bg-cyber-red\/10   { background:rgba(208,64,32,.10) !important; }
+.bg-cyber-green\/10 { background:rgba(45,122,78,.10)  !important; }
+.bg-cyber-red\/5    { background:rgba(208,64,32,.05) !important; }
+.bg-cyber-blue\/5   { background:rgba(61,74,138,.05) !important; }
+.hover\:border-cyber-blue:hover { border-color:var(--indigo) !important; }
+.hover\:border-cyber-red:hover  { border-color:var(--torii)  !important; }
+.hover\:border-cyber-gold:hover { border-color:var(--gold)   !important; }
+.hover\:text-cyber-blue:hover   { color:var(--indigo) !important; }
+.hover\:text-cyber-red:hover    { color:var(--torii)  !important; }
+.hover\:text-white:hover        { color:#fff !important; }
+.hover\:bg-cyber-blue\/10:hover { background:rgba(61,74,138,.1) !important; }
+.hover\:bg-cyber-red\/10:hover  { background:rgba(208,64,32,.1) !important; }
+.hover\:bg-cyber-gold\/10:hover { background:rgba(200,168,75,.1) !important; }
+/* Admin / modals koyu bg */
+#admin-modal-inner, #profile-fullscreen .glass-panel { background:rgba(12,8,24,0.85) !important; border-color:rgba(255,255,255,0.08) !important; color:#e2e8f0; }
+#profile-fullscreen { background:#0c0818 !important; color:#e2e8f0; }
+/* Profile içindeki NYC cyber-button'ları Tokyo'ya uyarla */
+#profile-fullscreen .cyber-button {
+  border-color: rgba(200,168,75,0.5) !important;
+  color: rgba(200,168,75,0.9) !important;
+  background: rgba(200,168,75,0.05) !important;
+  clip-path: none !important;
+}
+#profile-fullscreen .cyber-button:hover {
+  background: rgba(200,168,75,0.15) !important;
+}
+/* Profile içindeki glass-panel border */
+#profile-fullscreen .glass-panel {
+  border-color: rgba(200,168,75,0.15) !important;
+  background: rgba(12,8,24,0.6) !important;
+}
+/* Profile header - NYC dark bg yerine Tokyo */
+#profile-fullscreen > div > div:first-child {
+  background: rgba(12,8,24,0.95) !important;
+  border-color: rgba(200,168,75,0.15) !important;
+}
+/* Profil img aspect-square border */
+#profile-fullscreen .aspect-square {
+  border-color: rgba(232,114,138,0.4) !important;
+}
+/* search results panel */
+#srp { background:rgba(12,8,24,0.99) !important; color:#e2e8f0; }
+/* koyu bg overrides */
+.bg-black\/40 { background:rgba(12,8,24,.5) !important; }
+.bg-black\/50 { background:rgba(12,8,24,.65) !important; }
+.bg-black\/80 { background:rgba(12,8,24,.85) !important; }
+.bg-black\/95 { background:rgba(12,8,24,.97) !important; }
+.border-gray-800 { border-color:rgba(255,255,255,.08) !important; }
+.border-gray-700 { border-color:rgba(255,255,255,.12) !important; }
+.text-gray-300 { color:#d1d5db; }
+.text-gray-400 { color:#9ca3af; }
+.text-gray-500 { color:#6b7280; }
+.text-gray-600 { color:#4b5563; }
+/* player select cards on login */
+.player-select-btn { background:rgba(26,26,46,0.6) !important; border-color:rgba(255,255,255,0.1) !important; }
+.player-select-btn:hover { background:rgba(26,26,46,0.9) !important; }
+/* character cards stay light */
+#character-grid .cyber-card { background:var(--paper) !important; color:var(--ink) !important; }
+#org-grid .glass-panel { background:var(--paper) !important; color:var(--ink) !important; }
+
+/* ── DARK BASE LAYOUT ── */
+#app-wrapper { background: #0c0818; }
+#main-content { background: #0e0820; }
+.view-section { background: transparent; }
+#view-admin { height:100%; overflow-y:auto; padding:16px; }
+#character-grid .tokyo-card,
+#character-grid .cyber-card { background: #160e2a !important; border-color:rgba(200,168,75,.2) !important; color:#e8e2d9; }
+#character-grid .tokyo-card h3,
+#character-grid .cyber-card h3 { color:#f0ece5 !important; }
+#character-grid .tokyo-card .font-mono,
+#character-grid .cyber-card .font-mono { color:#9c9080; }
+#character-grid .tokyo-card:hover,
+#character-grid .cyber-card:hover { background:#221838 !important; box-shadow:0 8px 28px rgba(232,114,138,0.12); }
+/* Rez karakterler - biraz daha soluk */
+#rez-character-grid .cyber-card { background: #160e2a !important; border-color:rgba(200,168,75,.15) !important; color:#e8e2d9; opacity:0.9; }
+#rez-character-grid .cyber-card:hover { background:#221838 !important; opacity:1; }
+/* Stat cards */
+#stat-grid .washi-panel { background:#160e2a !important; border-color:rgba(200,168,75,.25) !important; color:#e8e2d9; }
+/* Org grid */
+#org-grid .glass-panel { background:#160e2a !important; color:#e8e2d9 !important; }
+/* Contract / case grid */
+#contract-grid .glass-panel,
+#case-grid .glass-panel { background:#160e2a !important; color:#e8e2d9 !important; }
+/* Vehicle / property / equipment grids */
+#vehicle-grid .glass-panel,
+#property-grid .glass-panel,
+#equipment-grid .glass-panel { background:#160e2a !important; color:#e8e2d9 !important; }
+/* Modals */
+#char-modal > div,
+#org-modal > div,
+#contract-detail-modal > div,
+#case-detail-modal > div { background:#160e2a !important; color:#e8e2d9; }
+.washi-panel { background:#160e2a !important; border-color:rgba(200,168,75,.25) !important; }
+.glass-panel { background:#160e2a !important; border-color:rgba(200,168,75,.2) !important; }
+/* Admin modal */
+#admin-modal-inner { background:#0e0820 !important; color:#e8e2d9; }
+
+/* ── TOKYO KARAKTER KARTI - RENKLI FOTOĞRAF ── */
+.tokyo-card img, #chars-grid .cyber-card img {
+  filter: none !important;
+  opacity: 0.85 !important;
+  mix-blend-mode: normal !important;
+}
+.tokyo-card img:hover, #chars-grid .cyber-card img:hover {
+  opacity: 1 !important;
+}
+/* Karakter profil fotoğrafı da renkli */
+#profile-fullscreen img.w-full { filter: none !important; }
+/* Inputs in dark mode */
+input:not([type=radio]):not([type=checkbox]), select, textarea {
+  background: rgba(15,12,8,0.6) !important;
+  border-color: rgba(200,168,75,.25) !important;
+  color: #e8e2d9 !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--sakura) !important;
+  background: rgba(15,12,8,0.8) !important;
+}
+/* Sidebar already dark - ok */
+/* Tab bar dark */
+#tab-bar { background:rgba(15,12,8,.4) !important; border-color:rgba(200,168,75,.15) !important; }
+.tab-item { color:rgba(255,255,255,.35); }
+.tab-item:hover { color:rgba(255,255,255,.7); background:rgba(232,114,138,.05); }
+.tab-item.active { color:#f0ece5 !important; }
+/* Section labels */
+.text-gray-300 { color:#c8bfb0 !important; }
+.text-gray-400 { color:#9c9080 !important; }
+.text-gray-500 { color:#6e6458 !important; }
+.text-gray-600 { color:#4e4840 !important; }
+.border-gray-800 { border-color:rgba(200,168,75,.1) !important; }
+.border-gray-700 { border-color:rgba(200,168,75,.15) !important; }
+/* Live ticker */
+#live-ticker-wrap { border-color:rgba(200,168,75,.15) !important; }
+/* Header search input */
+#header-search-wrap input { background:rgba(255,255,255,.06) !important; color:rgba(255,255,255,.7) !important; }
+</style>
+<!-- ── SUPABASE ── -->
+
+<!-- ── CONFIG önce yüklenmeli ── -->
+<script src="config.js?v=1"></script>
+</script>
+</head>
+<body class="bg-grid">
+
+<!-- Sakura Petals -->
+<div class="petal-container" id="petal-container"></div>
+
+<!-- Custom Cursor -->
+<div id="custom-cursor">
+  <div id="cursor-outer" style="position:absolute"></div>
+  <div id="cursor-inner" style="position:absolute"></div>
+  <div id="cursor-petal">🌸</div>
+  <!-- Compat aliases for cursor JS -->
+  <div id="cursor-dot" style="position:absolute;pointer-events:none"></div>
+  <div id="cursor-ring" style="position:absolute;pointer-events:none"></div>
+  <div id="cursor-crosshair-h" style="position:fixed;pointer-events:none"></div>
+  <div id="cursor-crosshair-v" style="position:fixed;pointer-events:none"></div>
+</div>
+
+<!-- Save Toast -->
+<div id="save-toast"><i class="fas fa-check-circle"></i><span id="save-toast-msg">KAYDEDİLDİ</span></div>
+<div id="backup-indicator">◌</div>
+
+<!-- Profile Fullscreen -->
+<input type="hidden" id="modal-char-id">
+    <div id="profile-fullscreen"></div>
+
+<!-- Modals -->
+<!-- char-modal engine tarafından render edilir -->
+<div id="org-modal"  style="display:none" class="fixed inset-0 z-[9991] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)UI.closeOrgModal()">
+  <div class="washi-panel w-full max-w-5xl max-h-[90vh] overflow-y-auto relative" id="org-modal-inner"></div>
+</div>
+<div id="contract-detail-modal" style="display:none" class="fixed inset-0 z-[9992] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)UI.closeContractModal()">
+  <div class="washi-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto relative" id="contract-detail-inner"></div>
+</div>
+<div id="case-detail-modal" style="display:none" class="fixed inset-0 z-[9993] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)UI.closeCaseModal()">
+  <div class="washi-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto relative" id="case-detail-inner"></div>
+</div>
+<div id="admin-modal" style="display:none" class="fixed inset-0 z-[9994] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)UI.closeAdmin()">
+  <div class="washi-panel w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" id="admin-modal-inner"></div>
+</div>
+
+<!-- Login Modal -->
+<div id="login-modal" class="fixed inset-0 z-[10001] flex items-center justify-center" style="background:linear-gradient(135deg,#0c0818 0%,#2d1a0e 100%)">
+  <div class="text-center p-8 max-w-lg w-full">
+    <!-- Torii Gate SVG -->
+    <div class="mb-6 flex justify-center">
+      <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="20" width="110" height="8" rx="1" fill="#d04020" opacity=".9"/>
+        <rect x="10" y="12" width="100" height="6" rx="1" fill="#c03010" opacity=".8"/>
+        <rect x="18" y="28" width="8" height="72" rx="2" fill="#d04020"/>
+        <rect x="94" y="28" width="8" height="72" rx="2" fill="#d04020"/>
+        <rect x="26" y="30" width="68" height="4" rx="1" fill="#c8a84b" opacity=".6"/>
+        <line x1="22" y1="15" x2="22" y2="28" stroke="#c8a84b" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <line x1="98" y1="15" x2="98" y2="28" stroke="#c8a84b" stroke-width="1.5" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+    <h1 class="font-display text-4xl font-black mb-1" style="background:linear-gradient(135deg,#f0c040,#e8728a,#d04020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">東京</h1>
+    <p class="font-mono text-xs mb-1" style="color:rgba(255,255,255,.5);letter-spacing:.3em">TOKYO_DB</p>
+    <p class="font-mono text-[10px] mb-8" style="color:rgba(255,255,255,.3);letter-spacing:.2em">OPERATOR IDENTIFICATION</p>
+    <div id="tokyo-player-select-grid" class="grid grid-cols-3 gap-3 mb-6"></div>
+    <div id="tokyo-login-selected-info" class="hidden mb-4 p-3 border border-opacity-30" style="border-color:rgba(200,168,75,.3)">
+      <p class="font-mono text-xs" style="color:rgba(255,255,255,.4)">SEÇİLEN OPERATÖR</p>
+      <p id="tokyo-login-selected-name" class="font-display font-black text-xl mt-1"></p>
+    </div>
+    <button id="tokyo-login-confirm-btn" disabled onclick="confirmLogin()" class="tokyo-btn w-full py-3 text-sm" style="border-color:rgba(200,168,75,.3);color:rgba(255,255,255,.3)">
+      <i class="fas fa-torii-gate mr-2"></i>GİRİŞ YAP
+    </button>
+    <p class="font-mono text-[9px] mt-4" style="color:rgba(255,255,255,.2)">TOKYO ROLEPLAY — GİZLİ KAYITLAR</p>
+  </div>
+</div>
+
+<!-- Main App Wrapper -->
+<div id="app-wrapper" class="flex h-screen overflow-hidden opacity-0 transition-opacity duration-700">
+  <!-- Sidebar -->
+  <aside id="app-sidebar" class="w-52 flex-shrink-0 flex flex-col overflow-hidden">
+    <!-- Sidebar Header -->
+    <div class="p-4 border-b" style="border-color:rgba(200,168,75,.2)">
+      <div class="header-logo-ja text-xl">東京</div>
+      <div class="font-mono text-[9px] mt-0.5" style="color:rgba(255,255,255,.3);letter-spacing:.2em">TOKYO_DB</div>
+    </div>
+    <!-- Player Indicator -->
+    <div class="px-4 py-2 border-b" style="border-color:rgba(255,255,255,.05)">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full animate-pulse" style="background:var(--bamboo)"></div>
+        <span id="player-indicator" class="font-mono text-[10px]" style="color:rgba(255,255,255,.4)">GİRİŞ</span>
+      </div>
+    </div>
+    <!-- Nav + Filters: birlikte scrollable, MODÜLLER başlığı sticky -->
+    <div class="flex-1 overflow-y-auto" style="scrollbar-width:none">
+      <!-- MODÜLLER başlığı sticky -->
+      <div class="sticky top-0 px-4 py-1.5 font-mono text-[9px] tracking-widest z-10" style="color:rgba(255,255,255,.2);background:linear-gradient(180deg,#0c0818 80%,transparent)">MODÜLLER</div>
+      <nav class="py-1">
+      <a class="nav-link" onclick="UI.switchTab('dashboard')"><i class="fas fa-users w-4 text-center"></i>Profiller</a>
+      <a class="nav-link" onclick="UI.switchTab('organizations')"><i class="fas fa-sitemap w-4 text-center"></i>Gruplar</a>
+      <a class="nav-link" onclick="UI.switchTab('radar')"><i class="fas fa-map-marked-alt w-4 text-center"></i>Harita</a>
+      <a class="nav-link" onclick="UI.switchTab('contracts')"><i class="fas fa-crosshairs w-4 text-center"></i>Kontratlar</a>
+      <a class="nav-link" onclick="UI.switchTab('cases')"><i class="fas fa-folder-open w-4 text-center"></i>Davalar</a>
+      <a class="nav-link" onclick="UI.switchTab('vehicles')"><i class="fas fa-car w-4 text-center"></i>Araçlar</a>
+      <a class="nav-link" onclick="UI.switchTab('properties')"><i class="fas fa-building w-4 text-center"></i>Mülkler</a>
+      <a class="nav-link" onclick="UI.switchTab('equipments')"><i class="fas fa-microchip w-4 text-center"></i>Ekipman</a>
+      <div class="torii-divider mx-4"></div>
+      <a class="nav-link" onclick="UI.promptAdmin()"><i class="fas fa-terminal w-4 text-center"></i>Admin Panel</a>
+      </nav>
+      <!-- Filters (sidebar footer içeriği buraya taşındı) -->
+      <div class="p-3 border-t mt-2" style="border-color:rgba(200,168,75,.15)">
+      <!-- Filters -->
+      <div id="org-filters" class="space-y-1 text-xs mb-3 border-b pb-2" style="border-color:rgba(255,255,255,.05)">
+        <div class="font-mono text-[9px] tracking-widest mb-1" style="color:rgba(255,255,255,.25)">ORGANİZASYON</div>
+      </div>
+      <div id="player-filters" class="space-y-1 text-xs mb-3">
+        <div class="font-mono text-[9px] tracking-widest mb-1 flex items-center gap-2" style="color:rgba(255,255,255,.25)">OYUNCU <span id="player-filter-indicator" class="font-mono text-[9px] font-bold hidden" style="display:none;color:var(--sakura,#e8728a)"></span></div>
+        <label class="flex items-center gap-2 cursor-pointer" style="color:rgba(255,255,255,.4)">
+          <input type="radio" name="player" checked onclick="UI.filterPlayer('all')" class="cyber-radio">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Tümü</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer" style="color:rgba(255,255,255,.4)">
+          <input type="radio" name="player" onclick="UI.filterPlayer('npc')" class="cyber-radio">
+          <span class="font-mono text-[10px] uppercase tracking-widest">NPC</span>
+        </label>
+      </div>
+      <!-- Threat Filters -->
+      <div id="threat-filters" class="space-y-1 text-xs mb-3 border-b pb-2" style="border-color:rgba(255,255,255,.05)">
+        <div class="font-mono text-[9px] tracking-widest mb-1" style="color:rgba(255,255,255,.25)">TEHDİT SEVİYESİ</div>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:rgba(255,255,255,.4)">
+          <input type="checkbox" id="tf-all" checked onclick="UI.filterThreatCheck('all',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Tümü</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#ff0055">
+          <input type="checkbox" id="tf-Omega" onclick="UI.filterThreatCheck('Omega',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Omega</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#ff2a2a">
+          <input type="checkbox" id="tf-Extreme" onclick="UI.filterThreatCheck('Extreme',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Extreme</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#f59e0b">
+          <input type="checkbox" id="tf-High" onclick="UI.filterThreatCheck('High',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">High</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#facc15">
+          <input type="checkbox" id="tf-Medium" onclick="UI.filterThreatCheck('Medium',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Medium</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:var(--bamboo,#4a7c59)">
+          <input type="checkbox" id="tf-Low" onclick="UI.filterThreatCheck('Low',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Low</span>
+        </label>
+      </div>
+      <!-- Heat Filters -->
+      <div id="heat-filters" class="space-y-1 text-xs mb-3 border-b pb-2" style="border-color:rgba(255,255,255,.05)">
+        <div class="font-mono text-[9px] tracking-widest mb-1" style="color:rgba(255,255,255,.25)">HEAT SEVİYESİ</div>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:rgba(255,255,255,.4)">
+          <input type="checkbox" id="hf-all" checked onclick="UI.filterHeatCheck('all',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Tümü</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:var(--bamboo,#4a7c59)">
+          <input type="checkbox" id="hf-Clean" onclick="UI.filterHeatCheck('Clean',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Temiz</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#facc15">
+          <input type="checkbox" id="hf-Low" onclick="UI.filterHeatCheck('Low',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Low</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#f59e0b">
+          <input type="checkbox" id="hf-Medium" onclick="UI.filterHeatCheck('Medium',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">Medium</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover-sfx" style="color:#ff2a2a">
+          <input type="checkbox" id="hf-High" onclick="UI.filterHeatCheck('High',this)" class="cyber-checkbox">
+          <span class="font-mono text-[10px] uppercase tracking-widest">High</span>
+        </label>
+      </div>
+      <!-- Theme Buttons -->
+      <div class="flex gap-2 flex-wrap">
+        <button id="th-sakura"  class="theme-btn active" data-theme="sakura"  style="background:#e8728a" onclick="UI.applyTheme('sakura')"  title="Sakura"></button>
+        <button id="th-hanami"  class="theme-btn"        data-theme="hanami"  style="background:#f9a8c9" onclick="UI.applyTheme('hanami')"  title="Hanami (Beyaz-Pembe)"></button>
+        <button id="th-night"   class="theme-btn"        data-theme="night"   style="background:#3d4a8a" onclick="UI.applyTheme('night')"   title="Gece"></button>
+        <button id="th-gold"    class="theme-btn"        data-theme="gold"    style="background:#c8a84b" onclick="UI.applyTheme('gold')"    title="Altın"></button>
+        <button id="th-forest"  class="theme-btn"        data-theme="forest"  style="background:#2d7a4e" onclick="UI.applyTheme('forest')"  title="Orman"></button>
+        <button id="th-torii"   class="theme-btn"        data-theme="torii"   style="background:#d04020" onclick="UI.applyTheme('torii')"   title="Torii"></button>
+      </div>
+      </div>  <!-- /scroll container -->
+  </aside>
+
+  <!-- Main Content -->
+  <div id="main-content" class="flex-1 flex flex-col overflow-hidden" style="min-height:0;height:100%">
+    <!-- Header -->
+    <header id="app-header" class="h-14 flex items-center justify-between px-4 flex-shrink-0">
+      <!-- Left: Hamburger + Logo -->
+      <div class="flex items-center gap-3">
+        <button id="mobile-menu-btn" onclick="UI.toggleMobileMenu()" class="tokyo-btn p-2 text-xs" style="border-color:rgba(200,168,75,.3);color:rgba(255,255,255,.6)">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <span class="header-logo-ja text-2xl font-black">東京_DB</span>
+        </div>
+      </div>
+      <!-- Center: Search -->
+      <div class="flex-1 max-w-xs mx-4 relative" id="header-search-wrap">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:rgba(255,255,255,.3)"></i>
+        <input type="text" id="search-input" placeholder="Ara... (isim, alias, org...)"
+          class="w-full h-8 pl-8 pr-3 text-xs font-mono"
+          style="background:rgba(255,255,255,.08);border:1px solid rgba(200,168,75,.25);color:#e2e8f0">
+      </div>
+      <!-- Right: Controls -->
+      <div class="flex items-center gap-3">
+        <span id="sync-indicator" style="color:rgba(255,255,255,.3)">◌ ÇEVRİMİÇİ</span>
+        <button onclick="SFX.toggleMute()" id="sfx-toggle-btn" class="tokyo-btn text-xs py-1 px-2 click-sfx hover-sfx" style="border-color:rgba(200,168,75,.3);color:rgba(255,255,255,.6)" title="Ses Aç/Kapat"><i class="fas fa-volume-up" style="color:var(--sakura,#e8728a)"></i></button>
+        <button onclick="UI.toggleLanguage()" id="lang-btn" class="tokyo-btn text-xs py-1 px-2" style="border-color:rgba(200,168,75,.3);color:rgba(255,255,255,.6)">TR</button>
+        <button onclick="Storage.export(DB)" class="tokyo-btn text-xs py-1 px-2" style="border-color:rgba(200,168,75,.3);color:rgba(255,255,255,.6)" title="Backup">
+          <i class="fas fa-download"></i>
+        </button>
+        <button onclick="UI.promptAdmin()" class="tokyo-btn text-xs py-1 px-3" style="border-color:rgba(232,114,138,.5);color:rgba(232,114,138,.8)">
+          <i class="fas fa-terminal mr-1"></i>ADMIN
+        </button>
+      </div>
+    </header>
+
+    <!-- Live Ticker -->
+    <div id="live-ticker-wrap">
+      <div class="ticker-label">速報</div>
+      <div class="overflow-hidden flex-1">
+        <div class="ticker-scroll" id="live-feed-ticker">
+<span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#e8728a;font-weight:700;margin-right:8px">[速報]</span>TOKYO_DB sistemi aktif — operatörler bağlı</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#c8a84b;font-weight:700;margin-right:8px">[INTEL]</span>Kabukicho'da bilinmeyen aktivite</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#d04020;font-weight:700;margin-right:8px">[UYARI]</span>Shinjuku'da çatışma raporu</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#2d7a4e;font-weight:700;margin-right:8px">[SİSTEM]</span>Veritabanı senkronize edildi</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#3d4a8a;font-weight:700;margin-right:8px">[INTEL]</span>Akihabara sinyal kesilmesi</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#e8728a;font-weight:700;margin-right:8px">[OPERATÖR]</span>Omega tehdit: Tokyo'da aktif</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#d04020;font-weight:700;margin-right:8px">[UYARI]</span>Shibuya'da şüpheli hareketlilik</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#e8728a;font-weight:700;margin-right:8px">[速報]</span>TOKYO_DB sistemi aktif — operatörler bağlı</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#c8a84b;font-weight:700;margin-right:8px">[INTEL]</span>Kabukicho'da bilinmeyen aktivite</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#d04020;font-weight:700;margin-right:8px">[UYARI]</span>Shinjuku'da çatışma raporu</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#2d7a4e;font-weight:700;margin-right:8px">[SİSTEM]</span>Veritabanı senkronize edildi</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#3d4a8a;font-weight:700;margin-right:8px">[INTEL]</span>Akihabara sinyal kesilmesi</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#e8728a;font-weight:700;margin-right:8px">[OPERATÖR]</span>Omega tehdit: Tokyo'da aktif</span><span class="px-6 whitespace-nowrap" style="color:rgba(255,255,255,.45)"><span style="color:#d04020;font-weight:700;margin-right:8px">[UYARI]</span>Shibuya'da şüpheli hareketlilik</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div id="tab-bar"></div>
+
+    <!-- Views Container -->
+    <div class="overflow-hidden relative" style="position:relative;flex:1;min-height:0;height:100%">
+      <!-- Dashboard / Characters -->
+      <div id="view-dashboard" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div id="stat-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-4">
+<div class="washi-panel p-4 border-l-4" style="border-left-color:var(--sakura)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--sakura)">TOPLAM</div><div id="stat-total" class="font-display font-black text-3xl" style="color:var(--ink)">0</div></div>
+<div class="washi-panel p-4 border-l-4" style="border-left-color:var(--bamboo)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--bamboo)">AKTİF <span class="text-[8px]" style="opacity:.5">/</span> <span id="stat-dead" class="font-black" style="color:var(--torii)">0</span></div><div id="stat-active" class="font-display font-black text-3xl" style="color:var(--ink)">0</div></div>
+<div class="washi-panel p-4 border-l-4" style="border-left-color:var(--torii)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--torii)">OMEGA <span class="text-[8px]" style="opacity:.5">/</span> <span id="stat-extreme" class="font-black" style="color:var(--torii)">0</span></div><div id="stat-omega" class="font-display font-black text-3xl" style="color:var(--torii)">0</div></div>
+<div class="washi-panel p-4 border-l-4" style="border-left-color:var(--gold)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--gold)">ARANAN</div><div id="stat-wanted" class="font-display font-black text-3xl" style="background:var(--torii);color:#fff;display:inline-block;padding:0 8px">0</div></div>
+<div class="washi-panel p-4 border-l-4 cursor-pointer" onclick="UI.switchTab('organizations')" style="border-left-color:var(--indigo,#6366f1)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--indigo,#6366f1)">ORG</div><div id="stat-orgs" class="font-display font-black text-3xl" style="color:var(--ink)">0</div></div>
+<div class="washi-panel p-4 border-l-4 cursor-pointer" onclick="UI.switchTab('contracts')" style="border-left-color:var(--sakura)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--sakura)">KONTRAT</div><div id="stat-contracts" class="font-display font-black text-3xl" style="color:var(--ink)">0</div></div>
+<div class="washi-panel p-4 border-l-4 cursor-pointer" onclick="UI.switchTab('cases')" style="border-left-color:var(--gold)"><div class="font-mono text-[10px] tracking-widest mb-1" style="color:var(--gold)">DAVA</div><div id="stat-cases" class="font-display font-black text-3xl" style="color:var(--ink)">0</div></div>
+</div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-mono text-xs font-bold" style="color:var(--sakura)">PROFİLLER</span>
+          <span class="font-mono text-[10px]" id="counter-chars" style="color:var(--gold)"></span>
+        </div>
+        <div id="character-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4"></div>
+
+        <!-- ── REZ KARAKTERLER ── -->
+        <div class="mt-10 mb-2" id="rez-chars-section">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-px flex-1" style="background:linear-gradient(90deg,transparent,var(--sakura)40)"></div>
+            <div class="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] uppercase" style="color:var(--sakura)">
+              <i class="fas fa-archive"></i>
+              REZ KARAKTERLER
+              <span id="counter-rez-chars" style="color:var(--gold);opacity:.7"></span>
+            </div>
+            <div class="h-px flex-1" style="background:linear-gradient(90deg,var(--sakura)40,transparent)"></div>
+          </div>
+          <div id="rez-character-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 opacity-75"></div>
+        </div>
+      </div>
+      <!-- Organizations -->
+      <div id="view-organizations" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div id="org-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+      <!-- Radar / Map -->
+      <div id="view-radar" class="view-section hidden flex flex-col" style="height:calc(100vh - 120px);overflow:hidden">
+        <div class="flex items-center gap-3 px-4 py-2 border-b" style="border-color:rgba(200,168,75,.2);background:rgba(248,245,240,.5)">
+          <span class="font-mono text-xs" style="color:var(--indigo)"><i class="fas fa-map-marked-alt mr-1"></i>TOKYO HARİTASI</span>
+          <div class="flex-1"></div>
+          <button onclick="UI.resetMapView()" class="tokyo-btn text-[10px] py-0.5 px-2">⌂ SIFIRLA</button>
+          <label class="flex items-center gap-2 font-mono text-[10px]" style="color:var(--ink)">
+            <input type="checkbox" id="map-show-chars" checked onchange="UI.renderRadar()" class="cyber-checkbox">KARAKTERLER
+          </label>
+          <label class="flex items-center gap-2 font-mono text-[10px]" style="color:var(--ink)">
+            <input type="checkbox" id="map-show-vehicles" checked onchange="UI.renderRadar()" class="cyber-checkbox">ARAÇLAR
+          </label>
+          <label class="flex items-center gap-2 font-mono text-[10px]" style="color:var(--ink)">
+            <input type="checkbox" id="map-show-events" checked onchange="UI.renderRadar()" class="cyber-checkbox">OLAYLAR
+          </label>
+        </div>
+        <div id="radar-map-container" class="relative" style="overflow:hidden;flex:1;min-height:0" oncontextmenu="UI.handleMapClick(event);return false;">
+          <img id="radar-map-img" src="https://i.imgur.com/WDSHQvo.jpeg" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;pointer-events:none">
+          <div class="absolute inset-0" style="background:rgba(12,8,24,0.25);pointer-events:none"></div>
+          <!-- Pin overlay for renderRadar() map pins -->
+          <div id="radar-pins" class="absolute inset-0" style="z-index:500"></div>
+          <!-- Coordinate copy overlay (legacy compat) -->
+          <div id="radar-MAP-DISABLED" class="absolute inset-0" style="z-index:450;pointer-events:none"></div>
+        </div>
+      </div>
+      <!-- Contracts -->
+      <div id="view-contracts" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div id="contract-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+      <!-- Cases -->
+      <div id="view-cases" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div id="case-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+      <!-- Vehicles -->
+      <div id="view-vehicles" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-mono text-xs font-bold" style="color:var(--sakura)">ARAÇLAR</span>
+          <span class="font-mono text-[10px]" id="counter-vehicles" style="color:var(--gold)"></span>
+        </div>
+        <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+      <!-- Properties -->
+      <div id="view-properties" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-mono text-xs font-bold" style="color:var(--sakura)">MÜLKLER</span>
+          <span class="font-mono text-[10px]" id="counter-properties" style="color:var(--gold)"></span>
+        </div>
+        <div id="property-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+      <!-- Equipments -->
+      <div id="view-equipments" class="view-section h-full overflow-y-auto p-4 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-mono text-xs font-bold" style="color:var(--sakura)">EKİPMAN</span>
+          <span class="font-mono text-[10px]" id="counter-equipments" style="color:var(--gold)"></span>
+        </div>
+        <div id="equipment-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <div id="view-admin" class="view-section h-full overflow-y-auto p-4 hidden">
+                    <div class="flex justify-between items-center mb-6 border-b border-cyber-red/30 pb-4">
+                        <h2 class="font-display text-2xl text-cyber-red glitch uppercase" data-text="System Override">System Override</h2>
+                        <div class="flex gap-3 flex-wrap items-center">
+                            <button onclick="Admin.exportDB()" class="cyber-button px-3 py-2 text-xs click-sfx hover-sfx" title="Veritabanını JSON olarak indir (yedek)"><i class="fas fa-download mr-2"></i>Backup DB</button>
+
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-[9px] text-gray-500 tracking-widest">CURSOR ANİM</span>
+                                <button id="cursor-anim-toggle" onclick="UI.toggleCursorAnim()" class="relative w-10 h-5 rounded-full border border-gray-600 transition-colors flex-shrink-0" style="background:rgba(0,162,255,0.3);border-color:var(--neon-blue)" title="İmleç animasyonunu aç/kapat">
+                                    <span id="cursor-anim-knob" class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform" style="background:var(--neon-blue);transform:translateX(20px)"></span>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono text-[9px] text-gray-500 tracking-widest">TEMA</span>
+                                <button onclick="UI.applyTheme('cyber')"   class="theme-btn" data-theme="cyber"   style="background:#00a2ff" title="Cyber Blue"></button>
+                                <button onclick="UI.applyTheme('crimson')" class="theme-btn" data-theme="crimson" style="background:#ff2a2a" title="Kızıl Şehir"></button>
+                                <button onclick="UI.applyTheme('matrix')"  class="theme-btn" data-theme="matrix"  style="background:#00ff66" title="Yeşil Matrix"></button>
+                                <button onclick="UI.applyTheme('violet')"  class="theme-btn" data-theme="violet"  style="background:#a855f7" title="Mor Gece"></button>
+                                <button onclick="UI.applyTheme('gold')"    class="theme-btn" data-theme="gold"    style="background:#f59e0b" title="Altın Çağ"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-1 font-mono text-sm border-b border-gray-800 pb-0 sticky top-0 z-10" style="background:#0e0820;padding-bottom:0;margin-bottom:0;">
+                        <button onclick="Admin.switchTab('chars')" class="admin-tab active click-sfx hover-sfx px-4 py-2 border-b-2 whitespace-nowrap border-transparent text-gray-500" data-target="admin-chars" data-i18n="nav_profiles">Profiles</button>
+                        <button onclick="Admin.switchTab('orgs')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-orgs" data-i18n="nav_syndicates">Syndicates</button>
+                        <button onclick="Admin.switchTab('vehicles')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-vehicles" data-i18n="nav_vehicles">Vehicles</button>
+                        <button onclick="Admin.switchTab('properties')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-properties" data-i18n="nav_properties">Assets &amp; Fronts</button>
+                        <button onclick="Admin.switchTab('equipments')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-equipments" data-i18n="nav_equipments">Equipments</button>
+                        <button onclick="Admin.switchTab('contracts')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-contracts" data-i18n="nav_contracts">Contracts</button>
+                        <button onclick="Admin.switchTab('cases')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-cases" data-i18n="nav_cases">Case Files</button>
+                        <button onclick="Admin.switchTab('logs')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-logs">Haber Akışı & Olaylar</button>
+                        <button onclick="Admin.switchTab('audit')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-audit">İşlem Geçmişi</button>
+                        <button onclick="Admin.switchTab('backup')" class="admin-tab click-sfx hover-sfx px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-white whitespace-nowrap" data-target="admin-backup"><i class="fas fa-shield-alt mr-1"></i>Yedekler</button>
+                        
+                    </div>
+
+                    <div id="admin-chars" class="admin-panel glass-panel p-6 cyber-border">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-white" data-i18n="profile_editor">PROFİL DÜZENLEYİCİ</h3>
+                            <div class="flex gap-2">
+                                <label class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 cursor-pointer transition-colors hover-sfx" title="Import Character"><i class="fas fa-file-import"></i><input type="file" class="hidden click-sfx" accept=".json" onchange="Admin.importRecord(event, 'char')"></label>
+                                <button type="button" onclick="Admin.exportRecord('char')" class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 transition-colors click-sfx hover-sfx" title="Export Character"><i class="fas fa-file-export"></i></button>
+                                <button type="button" onclick="Admin.clearForm('char')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                            </div>
+                        </div>
+                        <form id="char-form" onsubmit="Admin.saveCharacter(event); return false;" class="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono text-xs">
+                            <input type="hidden" id="c-id">
+                            <div><label class="text-cyber-blue block mb-1">Real Name</label><input type="text" id="c-name" required=""></div>
+                            <div class="md:col-span-3"><label class="text-cyber-blue block mb-1">⚡ Durum Notu <span class="text-gray-500">(kart üzerinde görünür)</span></label><input type="text" id="c-status-note" placeholder="Örn: Manhattan'da saklanıyor, Görevde, Hastanede..." maxlength="60"></div>
+                            <div><label class="text-cyber-blue block mb-1">Alias / Callsign</label><input type="text" id="c-alias"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-2">Affiliations <span class="text-gray-500">(Multi-org)</span></label>
+                                <div class="flex gap-2 mb-2"><select id="c-org-select" class="w-4/5"></select><button type="button" onclick="Admin.addCharOrg()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ ADD</button></div>
+                                <div id="c-org-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                                <input type="hidden" id="c-org">
+                            </div>
+                            
+                            <div>
+                                <label class="text-cyber-blue block mb-1">Oyuncu / Player</label>
+                                <select id="c-player">
+                                    <option value="">— NPC / Atanmamış —</option>
+                                </select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Status</label>
+                                <select id="c-status">
+                                    <option value="Active">Active / Aktif</option><option value="Deceased">Deceased / Ölü</option>
+                                    <option value="Incarcerated">Incarcerated / Hapiste</option><option value="MIA">MIA / Kayıp</option>
+                                </select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Threat Level</label>
+                                <select id="c-threat">
+                                    <option value="Low">Low / Düşük</option><option value="Medium">Medium / Orta</option>
+                                    <option value="High">High / Yüksek</option><option value="Extreme">Extreme / Ekstrem</option>
+                                    <option value="Omega" class="text-cyber-omega font-bold">OMEGA</option>
+                                </select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Heat (Wanted) Level</label>
+                                <select id="c-heat">
+                                    <option value="Clean">Clean / Temiz</option><option value="Low">Low / Düşük</option>
+                                    <option value="Medium">Medium / Orta</option><option value="High">High / Yüksek</option>
+                                    <option value="Most Wanted" class="text-cyber-red font-bold bg-white">MOST WANTED / BÜLTEN</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2 flex gap-4">
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map X (%)</label><input type="number" step="0.1" id="c-mapx" placeholder="e.g. 45.2"></div>
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map Y (%)</label><input type="number" step="0.1" id="c-mapy" placeholder="e.g. 30.8"></div>
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-1">Karakter Türü & Güvenlik</label>
+                                <!-- Profil Tipi -->
+                                <div class="mb-3">
+                                  <label class="text-gray-400 text-[10px] uppercase tracking-widest block mb-1">Karakter Tipi</label>
+                                  <select id="c-profile-type" class="w-full bg-black/60 border border-gray-700 text-white text-xs px-2 py-1.5 font-mono">
+                                    <option value="main">Ana Karakter</option>
+                                    <option value="profile">Rez Karakter</option>
+                                  </select>
+                                </div>
+                                <!-- Classified -->
+                                <label class="flex items-center gap-2 mb-2 cursor-pointer hover-sfx">
+                                    <input type="checkbox" id="c-classified" class="cyber-checkbox click-sfx">
+                                    <span class="text-red-400 font-bold uppercase tracking-widest text-[11px]">🔴 CLASSIFIED (Redacted — fotoğraf gizli)</span>
+                                </label>
+                                <!-- Locked -->
+                                <label class="flex items-center gap-2 mb-2 cursor-pointer hover-sfx">
+                                    <input type="checkbox" id="c-locked" class="cyber-checkbox click-sfx">
+                                    <span class="text-yellow-400 font-bold uppercase tracking-widest text-[11px]">🔒 LOCKED (fotoğraf görünür, kilit ikonlu)</span>
+                                </label>
+                                <!-- Archived -->
+                                <label class="flex items-center gap-2 cursor-pointer hover-sfx">
+                                    <input type="checkbox" id="c-archived" class="cyber-checkbox click-sfx">
+                                    <span class="text-gray-400 font-bold uppercase tracking-widest text-[11px]">📦 ARŞİVLENDİ (ana listeden gizle)</span>
+                                </label>
+                            </div>
+
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Image URL</label><input type="text" id="c-img" placeholder="https://..."></div>
+                            <div class="md:col-span-4"><label class="text-cyber-blue block mb-1" data-i18n="ext_link">External Intel Link</label><input type="text" id="c-link" placeholder="https://discord.com/..."></div>
+                            <div class="md:col-span-4"><label class="text-cyber-blue block mb-1">Intel / Background</label><textarea id="c-story" rows="5"></textarea></div>
+                            <div class="md:col-span-4">
+                              <label class="text-cyber-blue block mb-1"><i class="fas fa-music mr-1"></i>Theme Song (Spotify veya YouTube linki)</label>
+                              <input type="text" id="c-theme-song" placeholder="https://open.spotify.com/track/... veya https://youtu.be/...">
+                              <p class="text-gray-600 text-[10px] mt-1">Karakter profili açılınca otomatik çalar</p>
+                            </div>
+                            
+                            <div class="md:col-span-4 border-t border-gray-800 pt-4 mt-2">
+                                <label class="text-cyber-blue block mb-3 text-xs tracking-widest uppercase">İtibar / Reputation</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-gray-500 block mb-1 text-[10px] uppercase tracking-widest">Genel İtibar Puanı (-100 → +100)</label>
+                                        <div class="flex items-center gap-3">
+                                            <input type="range" id="c-rep-global" min="-100" max="100" value="0" step="1"
+                                                class="flex-1 accent-cyber-blue cursor-pointer"
+                                                oninput="Admin.updateRepSlider(this)">
+                                            <span id="c-rep-global-val" class="font-mono text-sm font-bold w-12 text-right text-cyber-blue">0</span>
+                                        </div>
+                                        <div id="c-rep-bar" class="mt-1 h-1 rounded-full bg-gray-800 overflow-hidden">
+                                            <div id="c-rep-bar-fill" class="h-full rounded-full transition-all" style="width:50%;background:var(--neon-blue)"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-gray-500 block mb-1 text-[10px] uppercase tracking-widest">İtibar Seviyesi</label>
+                                        <select id="c-rep-level">
+                                            <option value="Unknown">Unknown — Bilinmez</option>
+                                            <option value="Street">Street-Level — Sokak</option>
+                                            <option value="Known">Known — Tanınan</option>
+                                            <option value="Notorious">Notorious — Rezil</option>
+                                            <option value="Legendary">Legendary — Efsane</option>
+                                            <option value="Mythic">Mythic — Efsanevi</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="text-gray-500 block mb-1 text-[10px] uppercase tracking-widest">Organizasyonlara Göre İtibar</label>
+                                    <div id="c-rep-org-grid" class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1"></div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="text-gray-500 block mb-1 text-[10px] uppercase tracking-widest">İtibar Notları</label>
+                                    <textarea id="c-rep-notes" rows="2" placeholder="Sokakta ne biliniyor? Hangi olaylar itibarını şekillendirdi?"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-4 border-t border-gray-800 pt-4 mt-2">
+                                <label class="text-cyber-blue block mb-2" data-i18n="relationships">Relationships</label>
+                                <div class="flex gap-2 mb-2">
+                                    <select id="r-target" class="w-2/5"><option value="">Select Target...</option><option value="char_aaron">Aaron Devitt</option><option value="char_adawong">Ada Wong</option><option value="char_adrian">Adrian Vale</option><option value="char_waggner">Alessandra Waggner</option><option value="char_alexa">Alex Christine</option><option value="char_angelo">Angelo Bronte</option><option value="char_annie">Annie Moon</option><option value="char_asa">Asa</option><option value="char_ashb">Ashley Bonnet</option><option value="char_killerqueen">Ashley Miller</option><option value="char_aurelio">Aurelio Monreale</option><option value="char_bailey">Bailey Sok</option><option value="char_catroine">Catroine Lana Vaughan</option><option value="char_miyeon">Cho Miyeon</option><option value="char_san">Choi San</option><option value="char_top">Choi Seung-hyun</option><option value="char_gangjae">Do Gang-Jae</option><option value="char_drew">Drew Reed</option><option value="char_eddie">Eddie Miller</option><option value="char_edgar">Edgar Ross</option><option value="char_evelynn">Evelynn</option><option value="char_1778221157694">Fergal Devitt</option><option value="char_hamin">Hamin Lee</option><option value="char_han">Han So Hee</option><option value="char_jett">Han Sunwoo</option><option value="char_harley">Harleen Quinzel</option><option value="char_harold">Harold</option><option value="char_hosea">Hosea Matthews</option><option value="char_yeji">Hwang Yeji</option><option value="char_jackson">Jackson Wang</option><option value="char_jake">Jake Carter</option><option value="char_bucky">James Buchanan Barnes</option><option value="char_1778221265356">Jang Wonyoung</option><option value="char_yeeun">Jang Yeeun</option><option value="char_jay">Jay Park</option><option value="char_jennie">Jennie Kim</option><option value="char_pildo">Jeon Pil-do</option><option value="char_nyx">Jeon Soyeon</option><option value="char_jessica">Jessica Devitt</option><option value="char_dongjoo">Kang Dong Joo</option><option value="char_killit">Kim Soo-hyun</option><option value="char_soyeon">Kim Soyeon</option><option value="char_lisa">Lalisa Manobal</option><option value="char_wrench">Lee Know</option><option value="char_dahlia">Lee Sulgi</option><option value="char_1778220809032">Lee Sunmi</option><option value="char_dami">Lee Yubin</option><option value="char_lexi">Lexi Evans</option><option value="char_linda">Linda Braithwaite</option><option value="char_logan">Logan Good</option><option value="char_megan">Megan Fox</option><option value="char_mia">Mia Everhart</option><option value="char_morgan">Michael Morgan</option><option value="char_monica">Monica McDonovan</option><option value="char_natty">Natalie Love</option><option value="char_minnie">Nicha Yontararak</option><option value="char_nora">Nora Allen</option><option value="char_patrick">Patrick Rivers</option><option value="char_penny">Pembe Erdağı</option><option value="char_neverai">Rai Nevera</option><option value="char_orton">Randall Keith Orton</option><option value="char_rose">Roseanne Park</option><option value="char_viper">Sabine Callas</option><option value="char_scott">Scott Thompson</option><option value="char_ryujin">Shin Ryujin</option><option value="char_1778221305272">Shin Yuna</option><option value="char_sia">Sia</option><option value="char_kang">Song Jang</option><option value="char_somi">Song So Mi</option><option value="char_yuqi">Song Yuqi</option><option value="char_tarzzan">Tarzzan</option><option value="char_bradford">Timothy Bradford</option><option value="char_giselle">Uchinaga Aeri</option><option value="char_yelena">Yelena Belova</option></select>
+                                    <input type="text" id="r-type" class="w-2/5" placeholder="Relation (e.g. Ally, Sister, Target)">
+                                    <button type="button" onclick="Admin.addRel()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ ADD</button>
+                                </div>
+                                <div id="c-rel-list" class="space-y-1"></div>
+                            </div>
+
+                            <div class="md:col-span-4 border-t border-gray-800 pt-4 mt-2">
+                                <label class="text-cyber-blue block mb-3 text-xs tracking-widest uppercase"><i class="fas fa-landmark mr-2"></i>Banka Hesapları</label>
+                                <div class="flex gap-2 mb-3 flex-wrap">
+                                    <input type="text" id="bank-name"    placeholder="Banka adı"       class="flex-1 min-w-[120px]">
+                                    <input type="text" id="bank-account" placeholder="IBAN / Hesap No" class="flex-1 min-w-[160px]">
+                                    <input type="text" id="bank-balance" placeholder="Bakiye (ops.)"   class="w-32">
+                                    <input type="text" id="bank-note"    placeholder="Not"             class="flex-1 min-w-[100px]">
+                                    <button type="button" onclick="Admin.addBankAccount()" class="cyber-button click-sfx hover-sfx px-4 text-xs">+ EKLE</button>
+                                </div>
+                                <div id="c-bank-list" class="space-y-2"></div>
+                            </div>
+
+                            <div class="md:col-span-4 flex justify-end gap-3 mt-4 border-t border-gray-800 pt-4">
+                                <button type="button" id="c-btn-del" onclick="Admin.deleteData('characters', 'c-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mb-3 flex gap-2 flex-wrap">
+                                <button onclick="Admin.toggleBulkMode()" id="bulk-mode-btn" class="cyber-button px-3 py-1 text-[10px] click-sfx hover-sfx"><i class="fas fa-check-square mr-1"></i>TOPLU SEÇİM</button>
+                                <button onclick="Admin.bulkDelete()" id="bulk-delete-btn" class="cyber-button danger px-3 py-1 text-[10px] click-sfx hover-sfx hidden"><i class="fas fa-trash mr-1"></i>SEÇİLENLERİ SİL</button>
+                                <select id="bulk-org-select" class="hidden font-mono text-[10px] bg-black border border-gray-700 px-2"></select>
+                                <button onclick="Admin.bulkChangeOrg()" id="bulk-org-btn" class="cyber-button px-3 py-1 text-[10px] click-sfx hover-sfx hidden"><i class="fas fa-exchange-alt mr-1"></i>ORG DEĞİŞTİR</button>
+                            </div>
+                            <div class="mt-8 pt-4 border-t border-gray-800">
+                            <h4 class="font-mono text-gray-500 mb-2">EXISTING PROFILES (A-Z)</h4>
+                            <input type="text" id="admin-char-search" placeholder="Karakter ara..." class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none" oninput="Admin.filterCharList(this.value)">
+                            <div id="bulk-ops-bar"></div>
+                        <div id="admin-list-chars" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    
+
+                    <div id="admin-audit" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-mono text-lg text-cyber-gold uppercase tracking-widest">
+                                <i class="fas fa-history mr-2"></i>İşlem Geçmişi
+                            </h3>
+                            <div class="flex gap-2">
+                                <span class="font-mono text-[9px] text-cyber-green flex items-center gap-1"><i class="fas fa-circle text-[6px] animate-pulse"></i>CANLI</span>
+                                <button onclick="Admin.refreshAuditPanel()" class="cyber-button px-3 py-1 text-[10px] click-sfx hover-sfx"><i class="fas fa-sync mr-1"></i>YENILE</button>
+                                <button onclick="Admin.clearAuditLog()" class="cyber-button danger px-3 py-1 text-[10px] click-sfx hover-sfx"><i class="fas fa-trash mr-1"></i>TEMİZLE</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-4 font-mono text-[10px] flex-wrap">
+                            <button onclick="Admin.filterAudit('all')"    class="audit-filter-btn active cyber-button px-3 py-1" data-filter="all">TÜMÜ</button>
+                            <button onclick="Admin.filterAudit('create')" class="audit-filter-btn cyber-button px-3 py-1 text-cyber-green" style="border-color:var(--neon-green)" data-filter="create"><i class="fas fa-plus mr-1"></i>OLUŞTUR</button>
+                            <button onclick="Admin.filterAudit('edit')"   class="audit-filter-btn cyber-button px-3 py-1 text-cyber-blue" data-filter="edit"><i class="fas fa-pen mr-1"></i>DÜZENLE</button>
+                            <button onclick="Admin.filterAudit('delete')" class="audit-filter-btn cyber-button px-3 py-1 text-cyber-red" style="border-color:var(--neon-red)" data-filter="delete"><i class="fas fa-trash mr-1"></i>SİL</button>
+                            <button onclick="Admin.filterAudit('login')"  class="audit-filter-btn cyber-button px-3 py-1 text-cyber-gold" style="border-color:var(--neon-gold)" data-filter="login"><i class="fas fa-terminal mr-1"></i>GİRİŞ</button>
+                            <input type="text" id="audit-search" placeholder="Operatör veya mesaj ara..." 
+                                class="ml-auto bg-transparent border border-gray-700 px-2 py-1 font-mono text-[10px] text-gray-300 focus:border-cyber-gold outline-none w-48"
+                                oninput="Admin.filterAudit(document.querySelector('.audit-filter-btn.active')?.dataset.filter||'all')">
+                        </div>
+                        <div id="audit-log-list" class="overflow-y-auto custom-scroll space-y-1" style="max-height:calc(100vh - 380px)">
+                            <div class="font-mono text-xs text-gray-600 text-center py-6">Henüz işlem kaydı yok.</div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-800 font-mono text-[10px] text-gray-600 flex justify-between">
+                            <span id="audit-count">0 kayıt</span>
+                            <span>Maks 500 kayıt tutulur • JSON ile dışa aktarılır</span>
+                        </div>
+                    </div>
+
+                    <div id="admin-backup" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-mono text-lg uppercase tracking-widest" style="color:var(--neon-blue,#00a2ff)">
+                                <i class="fas fa-shield-alt mr-2"></i>Otomatik Yedekler
+                            </h3>
+                            <button onclick="Admin.loadBackups()" class="cyber-button px-4 py-2 text-xs click-sfx">
+                                <i class="fas fa-sync mr-1"></i>Yenile
+                            </button>
+                        </div>
+                        <p class="font-mono text-[10px] text-gray-500 mb-4">Her kayıt işleminde otomatik yedek alınır. Son 20 yedek saklanır. Karakter kaybı yaşanırsa buradan geri dönebilirsiniz.</p>
+                        <div id="backup-list" class="space-y-2">
+                            <div class="font-mono text-xs text-gray-600 text-center py-8">
+                                <i class="fas fa-database mr-2"></i>Yüklemek için "Yenile" butonuna tıkla
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-orgs" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-white" data-i18n="org_editor">SYNDICATE EDITOR</h3>
+                            <div class="flex gap-2">
+                                <label class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 cursor-pointer transition-colors hover-sfx" title="Import Org"><i class="fas fa-file-import"></i><input type="file" class="hidden click-sfx" accept=".json" onchange="Admin.importRecord(event, 'org')"></label>
+                                <button type="button" onclick="Admin.exportRecord('org')" class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 transition-colors click-sfx hover-sfx" title="Export Org"><i class="fas fa-file-export"></i></button>
+                                <button type="button" onclick="Admin.clearForm('org')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                            </div>
+                        </div>
+                                                <form id="org-form" onsubmit="Admin.saveOrg(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="o-id">
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="org_name">Syndicate Name</label><input type="text" id="o-name" required="" placeholder="e.g. Arasaka"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="org_color">Theme Color (Hex)</label><div class="color-input-wrap"><input type="text" id="o-color" required="" placeholder="e.g. #ff0000" oninput="document.getElementById('o-color-pick').value=this.value||'#ff0000'"><input type="color" id="o-color-pick" value="#ff0000" oninput="document.getElementById('o-color').value=this.value"></div></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="org_terr">Territories (comma-separated)</label><input type="text" id="o-terr" placeholder="e.g. New York, Tokyo"></div>
+                            <div>
+                                <label class="text-cyber-blue block mb-1">Tehdit Seviyesi</label>
+                                <select id="o-threat">
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Extreme">Extreme</option>
+                                    <option value="Omega">Omega</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-cyber-blue block mb-1">Heat Seviyesi</label>
+                                <select id="o-heat">
+                                    <option value="Clean">Clean</option>
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Most Wanted">Most Wanted</option>
+                                </select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Status</label>
+                                <select id="o-status"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Defunct">Defunct</option><option value="Shadow">Shadow (Covert)</option></select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="org_logo">Image / Logo URL</label><input type="text" id="o-img" placeholder="https://..."></div>
+                            <div><label class="text-cyber-blue block mb-1">Banner URL</label><input type="text" id="o-banner" placeholder="https://... (wide image)"></div>
+                            <div><label class="text-cyber-blue block mb-1">Member Count</label><input type="number" id="o-members" placeholder="e.g. 12" min="0"></div>
+                            <div><label class="text-cyber-blue block mb-1">Tags (comma-separated)</label><input type="text" id="o-tags" placeholder="e.g. criminal, tech, cartel"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Hierarchy / Rank Structure</label><input type="text" id="o-hierarchy" placeholder="e.g. Boss > Capo > Soldier"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1" data-i18n="org_desc">Description / Intel</label><textarea id="o-desc" rows="3"></textarea></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Notes / Intelligence</label><textarea id="o-notes" rows="2" placeholder="Classified notes, recent activity..."></textarea></div>
+                           <div class="md:col-span-2 border-t border-gray-800 pt-4 mt-2">
+                                <label class="text-cyber-blue block mb-2 text-xs tracking-widest uppercase">
+                                    <i class="fas fa-users mr-2"></i>Üyeler &amp; Roller
+                                    <span class="text-gray-500 text-[9px] ml-2">(Karakterler kendi edit sayfasından eklenir)</span>
+                                </label>
+                                <div id="o-member-list" class="space-y-2 max-h-52 overflow-y-auto">
+                                    <p class="font-mono text-[10px] text-gray-600 text-center py-4">Organizasyon seçildiğinde üyeler yüklenecek...</p>
+                                </div>
+                                <div class="flex gap-2 mt-2">
+                                    <select id="o-member-char" class="flex-1 bg-black border border-gray-700 text-white font-mono text-xs px-2 py-1 focus:outline-none focus:border-cyber-blue">
+                                        <option value="">— Karakter Seç —</option>
+                                    </select>
+                                    <input type="text" id="o-member-role" placeholder="Rol (örn. Lider)" class="w-32 bg-black border border-gray-700 text-white font-mono text-xs px-2 py-1 focus:outline-none focus:border-cyber-blue">
+                                    <button type="button" onclick="Admin.org.addOrgMember()" class="cyber-button px-3 py-1 text-xs click-sfx hover-sfx"><i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                 <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">External Links (comma-separated URLs)</label><input type="text" id="o-links" placeholder="https://discord.com/..."></div>
+                            <div>
+                                <label class="text-cyber-blue block mb-1">İlişkili Mülkler</label>
+                                <div id="o-linked-props-picker" class="border border-gray-700 bg-black/60 p-2 max-h-36 overflow-y-auto space-y-1 font-mono text-xs">
+                                  <div class="text-gray-600 text-[10px]">Yükleniyor...</div>
+                                </div>
+                                <input type="hidden" id="o-linked-props">
+                            </div>
+                            <div>
+                                <label class="text-cyber-blue block mb-1">İlişkili Araçlar</label>
+                                <div id="o-linked-vehs-picker" class="border border-gray-700 bg-black/60 p-2 max-h-36 overflow-y-auto space-y-1 font-mono text-xs">
+                                  <div class="text-gray-600 text-[10px]">Yükleniyor...</div>
+                                </div>
+                                <input type="hidden" id="o-linked-vehs">
+                            </div>
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="o-btn-del" onclick="Admin.deleteData('organizations', 'o-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-orgs-search" placeholder="Organizasyon ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterOrgList(this.value)">
+                            <div id="admin-org-members" class="max-h-52 overflow-y-auto mb-3" style="display:none"></div>
+                            <div id="admin-list-orgs" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-vehicles" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-white" data-i18n="veh_editor">ARAÇ DÜZENLEYİCİ</h3>
+                            <div class="flex gap-2">
+                                <label class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 cursor-pointer transition-colors hover-sfx" title="Import Vehicle"><i class="fas fa-file-import"></i><input type="file" class="hidden click-sfx" accept=".json" onchange="Admin.importRecord(event, 'veh')"></label>
+                                <button type="button" onclick="Admin.exportRecord('veh')" class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 transition-colors click-sfx hover-sfx" title="Export Vehicle"><i class="fas fa-file-export"></i></button>
+                                <button type="button" onclick="Admin.clearForm('veh')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                            </div>
+                        </div>
+                        <form id="veh-form" onsubmit="Admin.saveVehicle(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="v-id">
+                            <div><label class="text-cyber-blue block mb-1">Marka / Brand</label><input type="text" id="v-brand" placeholder="Ferrari, BMW..."></div>
+                            <div><label class="text-cyber-blue block mb-1">Model</label><input type="text" id="v-model" required="" placeholder="SF90, M3..."></div>
+                            <div><label class="text-cyber-blue block mb-1">Üretim Yılı</label><input type="text" id="v-year" placeholder="2024"></div>
+                            <div><label class="text-cyber-blue block mb-1">Renk</label><input type="text" id="v-color-name" placeholder="Kırmızı, Midnight Black..."></div>
+                            <div><label class="text-cyber-blue block mb-1">Güç (HP)</label><input type="text" id="v-hp" placeholder="500 HP"></div>
+                            <div><label class="text-cyber-blue block mb-1">0-100 km/h (sn)</label><input type="text" id="v-acc" placeholder="3.5"></div>
+                            <div><label class="text-cyber-blue block mb-1">Maks Hız (km/h)</label><input type="text" id="v-topspeed" placeholder="320"></div>
+                            <div><label class="text-cyber-blue block mb-1">Maks Hız (mph)</label><input type="text" id="v-topspeed-mph" placeholder="200" oninput="const k=document.getElementById('v-topspeed');if(k&&this.value)k.value=Math.round(this.value*1.609)+'';"></div>
+                            <div><label class="text-cyber-blue block mb-1">Fiyat / Price</label><input type="text" id="v-price" placeholder="$300,000"></div>
+                            <div><label class="text-cyber-blue block mb-1">License Plate</label><input type="text" id="v-plate" placeholder="e.g. 99H4X"></div>
+                            <div><label class="text-cyber-blue block mb-1">Performance Specs</label><input type="text" id="v-perf" placeholder="e.g. 1000 HP / V8"></div>
+                            <div><label class="text-cyber-blue block mb-1">Registered Owner</label><select id="v-owner"></select></div>
+                            <div><label class="text-cyber-blue block mb-1">Heat (Wanted) Level</label>
+                                <select id="v-heat">
+                                    <option value="Clean">Clean / Kayıtlı</option><option value="Low">Low / Şüpheli</option>
+                                    <option value="Medium">Medium / İşaretli</option><option value="High">High / Sıcak</option>
+                                    <option value="Most Wanted" class="text-cyber-red font-bold bg-white">MOST WANTED / ÇALINTI</option>
+                                </select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Image URL</label><input type="text" id="v-img"></div>
+                            
+                            <div class="md:col-span-2 flex gap-4">
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map X (%)</label><input type="number" step="0.1" id="v-mapx"></div>
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map Y (%)</label><input type="number" step="0.1" id="v-mapy"></div>
+                            </div>
+                            
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1" data-i18n="ext_link">External Intel Link</label><input type="text" id="v-link" placeholder="https://..."></div>
+                            
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="v-btn-del" onclick="Admin.deleteData('vehicles', 'v-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-vehicles-search" placeholder="Araç ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterVehicleList(this.value)">
+                            <div id="admin-list-vehicles" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-properties" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-white" data-i18n="prop_editor">MÜLK DÜZENLEYİCİ</h3>
+                            <div class="flex gap-2">
+                                <label class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 cursor-pointer transition-colors hover-sfx" title="Import Asset"><i class="fas fa-file-import"></i><input type="file" class="hidden click-sfx" accept=".json" onchange="Admin.importRecord(event, 'prop')"></label>
+                                <button type="button" onclick="Admin.exportRecord('prop')" class="text-cyber-blue hover:text-white text-sm font-mono border border-cyber-blue px-3 py-1 transition-colors click-sfx hover-sfx" title="Export Asset"><i class="fas fa-file-export"></i></button>
+                                <button type="button" onclick="Admin.clearForm('prop')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                            </div>
+                        </div>
+                        <form id="prop-form" onsubmit="Admin.saveProperty(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="p-id">
+                            <div><label class="text-cyber-blue block mb-1">Asset Name</label><input type="text" id="p-name" required="" placeholder="e.g. LUX Club"></div>
+                            <div><label class="text-cyber-blue block mb-1">Sector / Location</label><input type="text" id="p-loc" placeholder="e.g. Manhattan"></div>
+                            <div><label class="text-cyber-blue block mb-1">Classification (Type)</label><input type="text" id="p-type" placeholder="e.g. Front / HQ"></div>
+                            <div><label class="text-cyber-blue block mb-1">Registered Owner</label><select id="p-owner"></select></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Asset Details</label><textarea id="p-desc" rows="3"></textarea></div>
+                            
+                            <div class="md:col-span-2 flex gap-4">
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map X (%)</label><input type="number" step="0.1" id="p-mapx"></div>
+                                <div class="w-1/2"><label class="text-cyber-blue block mb-1">Map Y (%)</label><input type="number" step="0.1" id="p-mapy"></div>
+                            </div>
+                            
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Image URL</label><input type="text" id="p-img"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1" data-i18n="ext_link">External Intel Link</label><input type="text" id="p-link" placeholder="https://..."></div>
+                            
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="p-btn-del" onclick="Admin.deleteData('properties', 'p-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-properties-search" placeholder="Mülk ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterPropertyList(this.value)">
+                            <div id="admin-list-properties" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-equipments" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-cyber-omega" data-i18n="eq_editor">EQUIPMENT EDITOR</h3>
+                            <div class="flex gap-2">
+                                <label class="text-cyber-omega hover:text-white text-sm font-mono border border-cyber-omega px-3 py-1 cursor-pointer transition-colors hover-sfx" title="Import Equipment"><i class="fas fa-file-import"></i><input type="file" class="hidden click-sfx" accept=".json" onchange="Admin.importRecord(event, 'eq')"></label>
+                                <button type="button" onclick="Admin.exportRecord('eq')" class="text-cyber-omega hover:text-white text-sm font-mono border border-cyber-omega px-3 py-1 transition-colors click-sfx hover-sfx" title="Export Equipment"><i class="fas fa-file-export"></i></button>
+                                <button type="button" onclick="Admin.clearForm('eq')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                            </div>
+                        </div>
+                        <form id="eq-form" onsubmit="Admin.saveEquipment(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="eq-id">
+                            <div><label class="text-cyber-omega block mb-1">Equipment Name</label><input type="text" id="eq-name" required="" placeholder="e.g. Sandevistan Mk.5"></div>
+                            <div><label class="text-cyber-omega block mb-1">Classification (Type)</label><input type="text" id="eq-type" placeholder="e.g. Cyberware / Weapon"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-omega block mb-1">Registered Owner</label><select id="eq-owner"></select></div>
+                            <div class="md:col-span-2"><label class="text-cyber-omega block mb-1">Specs &amp; Details</label><textarea id="eq-desc" rows="3" placeholder="Features, origins, lethal capabilities..."></textarea></div>
+                            
+                            <div class="md:col-span-2"><label class="text-cyber-omega block mb-1">Image URL</label><input type="text" id="eq-img"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-omega block mb-1" data-i18n="ext_link">External Intel Link</label><input type="text" id="eq-link" placeholder="https://..."></div>
+                            
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="eq-btn-del" onclick="Admin.deleteData('equipments', 'eq-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2" style="color:var(--neon-omega); border-color:var(--neon-omega);">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-equipments-search" placeholder="Ekipman ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterEquipmentList(this.value)">
+                            <div id="admin-list-equipments" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-contracts" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-cyber-red" data-i18n="contract_editor">CONTRACT EDITOR</h3>
+                            <button type="button" onclick="Admin.clearForm('con')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                        </div>
+                                                <form id="con-form" onsubmit="Admin.saveContract(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="con-id">
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-1">Hedef / Target</label>
+                                <div class="flex gap-2 mb-1">
+                                    <select id="con-target-select" class="flex-1" onchange="Admin.onConTargetSelect(this)">
+                                        <option value="">— Manuel isim gir —</option>
+                                    </select>
+                                </div>
+                                <input type="text" id="con-target" required="" placeholder="Hedef ismi girin veya yukarıdan seçin">
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="con_issuer">Issuer / Client</label><input type="text" id="con-issuer" placeholder="e.g. Classified / Providence"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="con_reward">Bounty / Reward</label><input type="text" id="con-reward" placeholder="e.g. $1,500,000"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="con_status">Status</label>
+                                <select id="con-status"><option value="Open">OPEN</option><option value="Assigned">ASSIGNED</option><option value="In Progress">IN PROGRESS</option><option value="Completed">COMPLETED</option><option value="Failed">FAILED</option><option value="Cancelled">CANCELLED</option></select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Risk Level</label>
+                                <select id="con-risk"><option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option><option value="Critical">Critical</option></select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Deadline</label><input type="text" id="con-deadline" placeholder="e.g. 2026-06-01 or ASAP"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="con_assigned">Assigned Operative</label><select id="con-assigned"></select></div>
+                            <div><label class="text-cyber-blue block mb-1">Tags (comma-separated)</label><input type="text" id="con-tags" placeholder="e.g. assassination, retrieval"></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1" data-i18n="con_details">Contract Details / Intel Brief</label><textarea id="con-desc" rows="3"></textarea></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Briefing / Mission Details</label><textarea id="con-briefing" rows="3" placeholder="Görev özeti, hedef detayları..."></textarea></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Classified Notes</label><textarea id="con-notes" rows="2" placeholder="Additional field notes..."></textarea></div>
+                            <div><label class="text-cyber-blue block mb-1">Location / Area</label><input type="text" id="con-location" placeholder="e.g. Lower East Side, Manhattan"></div>
+                            <div><label class="text-cyber-blue block mb-1">Outcome (tamamlanınca)</label><input type="text" id="con-outcome" placeholder="e.g. Hedef etkisiz hale getirildi"></div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Şüpheliler / İlgili Karakterler</label>
+                                <div class="flex gap-2 mb-2"><select id="con-suspect-select" class="w-4/5"></select><button type="button" onclick="Admin.addConSuspect()" class="cyber-button click-sfx hover-sfx px-4 w-1/5 text-xs">+ EKLE</button></div>
+                                <div id="con-suspect-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">İlgili Organizasyonlar</label>
+                                <div class="flex gap-2 mb-2"><select id="con-org-select" class="w-4/5"></select><button type="button" onclick="Admin.addConOrg()" class="cyber-button click-sfx hover-sfx px-4 w-1/5 text-xs">+ EKLE</button></div>
+                                <div id="con-org-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Kanıtlar / Evidence</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="con-ev-label" placeholder="Kanıt adı" class="flex-1">
+                                    <input type="text" id="con-ev-url" placeholder="URL (opsiyonel)" class="flex-1">
+                                    <select id="con-ev-status" class="w-32"><option>Secured</option><option>Pending</option><option>Lost</option><option>Classified</option></select>
+                                    <button type="button" onclick="Admin.addConEvidence()" class="cyber-button click-sfx px-3 text-xs">+</button>
+                                </div>
+                                <div id="con-evidence-list" class="space-y-1 min-h-[20px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Zaman Çizelgesi / Timeline</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="con-tl-date" placeholder="Tarih" class="w-36">
+                                    <input type="text" id="con-tl-event" placeholder="Olay" class="flex-1">
+                                    <button type="button" onclick="Admin.addConTimeline()" class="cyber-button click-sfx px-3 text-xs">+</button>
+                                </div>
+                                <div id="con-timeline-list" class="space-y-1 min-h-[20px]"></div>
+                            </div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">External Reference Link</label><input type="text" id="con-link" placeholder="https://..."></div>
+                            <div class="md:col-span-2 flex items-center gap-3"><label class="flex items-center gap-2 cursor-pointer hover-sfx"><input type="checkbox" id="con-archived" class="cyber-checkbox click-sfx"><span class="text-gray-400 uppercase tracking-widest text-[10px]">Archive this contract</span></label></div>
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="con-btn-del" onclick="Admin.deleteData('contracts', 'con-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-contracts-search" placeholder="Kontrat ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterContractList(this.value)">
+                            <div id="admin-list-contracts" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-cases" class="admin-panel glass-panel p-6 cyber-border hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-cyber-gold" data-i18n="case_editor">CASE FILE EDITOR</h3>
+                            <button type="button" onclick="Admin.clearForm('case')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                        </div>
+                                                <form id="case-form" onsubmit="Admin.saveCase(event); return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                            <input type="hidden" id="case-id">
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="case_title">Case Title</label><input type="text" id="case-title" required="" placeholder="e.g. Fall of the Red Room"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="case_date">Date / Period</label><input type="text" id="case-date" placeholder="e.g. 2026-05-07"></div>
+                            <div><label class="text-cyber-blue block mb-1">Case Status</label>
+                                <select id="case-status"><option value="Open">OPEN</option><option value="Active">ACTIVE / ONGOING</option><option value="Closed">CLOSED</option><option value="Cold">COLD CASE</option><option value="Archived">ARCHIVED</option></select>
+                            </div>
+                            <div><label class="text-cyber-blue block mb-1">Priority / Threat Level</label>
+                                <select id="case-priority"><option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option><option value="Critical">Critical</option><option value="Omega">OMEGA</option></select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Suspects / Persons of Interest</label>
+                                <div class="flex gap-2 mb-2"><select id="case-tag-select" class="w-4/5"></select><button type="button" onclick="Admin.addCaseTag()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ SUSPECT</button></div>
+                                <div id="case-tag-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Assigned Agents</label>
+                                <div class="flex gap-2 mb-2"><select id="case-agent-select" class="w-4/5"></select><button type="button" onclick="Admin.addCaseAgent()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ ASSIGN</button></div>
+                                <div id="case-agent-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Related Organizations</label>
+                                <div class="flex gap-2 mb-2"><select id="case-org-select" class="w-4/5"></select><button type="button" onclick="Admin.addCaseOrg()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ ORG</button></div>
+                                <div id="case-org-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Evidence Items</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="ev-label" placeholder="Label (e.g. Security footage)" class="w-2/5">
+                                    <input type="text" id="ev-url" placeholder="URL (optional)" class="w-2/5">
+                                    <select id="ev-status" class="w-1/5"><option value="Secured">Secured</option><option value="Pending">Pending</option><option value="Lost">Lost</option><option value="Classified">Classified</option></select>
+                                    <button type="button" onclick="Admin.addCaseEvidence()" class="cyber-button click-sfx hover-sfx px-3">+</button>
+                                </div>
+                                <div id="case-evidence-list" class="space-y-1 min-h-[20px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Timeline Events</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="tl-date" placeholder="Date (e.g. 2026-04-28)" class="w-1/3">
+                                    <input type="text" id="tl-event" placeholder="Event description" class="flex-1">
+                                    <button type="button" onclick="Admin.addCaseTimeline()" class="cyber-button click-sfx hover-sfx px-3">+</button>
+                                </div>
+                                <div id="case-timeline-list" class="space-y-1 min-h-[20px]"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-cyber-blue block mb-2">Bağlı Kontratlar (Linked Contracts)</label>
+                                <div class="flex gap-2 mb-2">
+                                    <select id="case-contract-select" class="w-4/5"></select>
+                                    <button type="button" onclick="Admin.addCaseContract()" class="cyber-button click-sfx hover-sfx px-4 w-1/5">+ LINK</button>
+                                </div>
+                                <div id="case-contract-list" class="flex flex-wrap gap-2 min-h-[28px]"></div>
+                            </div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">External References (comma-separated URLs)</label><input type="text" id="case-refs" placeholder="https://..."></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1" data-i18n="case_notes">Case Intel / Summary</label><textarea id="case-content" rows="5"></textarea></div>
+                            <div class="md:col-span-2"><label class="text-cyber-blue block mb-1">Classified Notes</label><textarea id="case-notes-field" rows="2" placeholder="Internal notes..."></textarea></div>
+                            <div class="md:col-span-2 flex items-center gap-3"><label class="flex items-center gap-2 cursor-pointer hover-sfx"><input type="checkbox" id="case-archived" class="cyber-checkbox click-sfx"><span class="text-gray-400 uppercase tracking-widest text-[10px]">Archive this case</span></label></div>
+                            <div class="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button type="button" id="case-btn-del" onclick="Admin.deleteData('cases', 'case-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <input type="text" id="admin-cases-search" placeholder="Dava ara..."
+                                class="w-full bg-black/60 border border-gray-700 text-gray-300 font-mono text-xs px-3 py-2 mb-2 focus:border-cyber-blue outline-none"
+                                oninput="Admin.filterCaseList(this.value)">
+                            <div id="admin-list-cases" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-logs" class="admin-panel glass-panel p-6 cyber-border hidden">
+
+                        
+                        
+                        <div class="mb-5 border border-purple-900/50 p-4 rounded-sm" style="background:rgba(168,85,247,0.04)">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-mono text-sm uppercase tracking-widest" style="color:#a855f7"><i class="fas fa-map-marker-alt mr-2"></i>Olay Pinleri</h3>
+                                <button onclick="Admin.clearForm('ev')" class="cyber-button px-3 py-1 text-[10px] click-sfx" style="border-color:#a855f7;color:#a855f7"><i class="fas fa-plus mr-1"></i>YENİ</button>
+                            </div>
+                            <div id="admin-list-events" class="max-h-36 overflow-y-auto space-y-1 font-mono text-xs pr-2 mb-3"></div>
+                            <form id="ev-form" onsubmit="Admin.saveEvent(event); return false;" class="grid grid-cols-2 gap-2 font-mono text-xs">
+                                <input type="hidden" id="ev-id">
+                                <div class="col-span-2"><label class="block mb-1" style="color:#a855f7">Başlık</label><input type="text" id="ev-title" required placeholder="Olay başlığı..."></div>
+                                <div><label class="block mb-1" style="color:#a855f7">Tarih</label><input type="text" id="ev-date" placeholder="2026-05-15"></div>
+                                <div><label class="block mb-1" style="color:#a855f7">İkon (FA)</label><input type="text" id="ev-icon" placeholder="bolt" value="bolt"></div>
+                                <div><label class="block mb-1" style="color:#a855f7">Harita X %</label><input type="number" id="ev-mapx" min="0" max="100" step="0.1" placeholder="50"></div>
+                                <div><label class="block mb-1" style="color:#a855f7">Harita Y %</label><input type="number" id="ev-mapy" min="0" max="100" step="0.1" placeholder="50"></div>
+                                <div><label class="block mb-1" style="color:#a855f7">Renk</label><div class="color-input-wrap"><input type="text" id="ev-color" value="#a855f7" oninput="document.getElementById('ev-color-pick').value=this.value||'#a855f7'"><input type="color" id="ev-color-pick" value="#a855f7" oninput="document.getElementById('ev-color').value=this.value"></div></div>
+                                <div class="flex items-end gap-1">
+                                    <button type="button" id="ev-btn-del" onclick="Admin.deleteEvent()" class="cyber-button danger px-2 py-1.5 text-[10px] hidden click-sfx">SİL</button>
+                                    <button type="submit" class="cyber-button px-3 py-1.5 text-[10px] flex-1 click-sfx" style="border-color:#a855f7;color:#a855f7">KAYDET</button>
+                                </div>
+                                <div class="col-span-2"><label class="block mb-1" style="color:#a855f7">Açıklama</label><textarea id="ev-desc" rows="2" placeholder="Olay detayları..."></textarea></div>
+                            </form>
+                        </div>
+                        
+<div class="flex justify-between items-center mb-6">
+                            <h3 class="font-mono text-lg text-cyber-green" data-i18n="log_editor">LIVE FEED EDITOR</h3>
+                            <button type="button" onclick="Admin.clearForm('log')" class="text-cyber-green hover:text-white text-sm font-mono border border-cyber-green px-3 py-1 transition-colors click-sfx hover-sfx">+ NEW</button>
+                        </div>
+                        <form id="log-form" onsubmit="Admin.saveLog(event); return false;" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                            <input type="hidden" id="l-id">
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="log_time">Timestamp</label><input type="text" id="l-time" required="" placeholder="e.g. 03:15 AM"></div>
+                            <div><label class="text-cyber-blue block mb-1" data-i18n="log_type">Type</label>
+                                <select id="l-type">
+                                    <option value="INTEL">İSTİHBARAT (Mavi)</option>
+                                    <option value="WARNING">UYARI (Kırmızı)</option>
+                                    <option value="SYSTEM">SİSTEM (Yeşil)</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-3"><label class="text-cyber-blue block mb-1" data-i18n="log_msg">Message</label><input type="text" id="l-text" required="" placeholder="e.g. Gunshots reported near Queens..."></div>
+                            
+                            <div class="md:col-span-3 flex justify-end gap-3 mt-4">
+                                <button type="button" id="l-btn-del" onclick="Admin.deleteData('logs', 'l-id')" class="cyber-button danger click-sfx hover-sfx px-8 py-2 hidden">PURGE RECORD</button>
+                                <button type="submit" class="cyber-button click-sfx hover-sfx px-8 py-2">COMMIT CHANGES</button>
+                            </div>
+                        </form>
+                        <div class="mt-8 pt-4 border-t border-gray-800">
+                            <div id="admin-list-logs" class="max-h-60 overflow-y-auto space-y-1 font-mono text-xs pr-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    </div>
+  </div>
+
+
+
+    <div id="pdf-dossier" class="hidden bg-white text-black p-10 font-mono w-[800px]">
+        <div class="border-b-4 border-black pb-4 mb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-4xl font-black tracking-widest">CLASSIFIED DOSSIER</h1>
+                <p class="text-sm font-bold mt-1">FEDERAL BUREAU OF INVESTIGATION - DEPT. OF INTELLIGENCE</p>
+            </div>
+            <div class="text-right text-xs font-bold">
+                <p>DOC ID: <span id="pdf-id"></span></p>
+                <p>DATE: <span id="pdf-date"></span></p>
+            </div>
+        </div>
+        <div class="flex gap-8 mb-8">
+            <div class="w-1/3 border-2 border-black p-1 h-64 flex items-center justify-center bg-gray-200">
+                <img id="pdf-img" src="" class="max-w-full max-h-full object-contain filter grayscale" crossorigin="anonymous">
+            </div>
+            <div class="w-2/3 space-y-4">
+                <div><span class="font-bold border-b border-black block w-1/4 mb-1">SUBJECT NAME</span><div id="pdf-name" class="text-2xl font-black uppercase"></div></div>
+                <div><span class="font-bold border-b border-black block w-1/4 mb-1">KNOWN ALIAS</span><div id="pdf-alias" class="text-lg uppercase"></div></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><span class="font-bold border-b border-black block mb-1">AFFILIATION</span><div id="pdf-org" class="uppercase"></div></div>
+                    <div><span class="font-bold border-b border-black block mb-1">STATUS</span><div id="pdf-status" class="uppercase"></div></div>
+                    <div><span class="font-bold border-b border-black block mb-1">THREAT LEVEL</span><div id="pdf-threat" class="uppercase"></div></div>
+                    <div><span class="font-bold border-b border-black block mb-1">HEAT / WANTED</span><div id="pdf-heat" class="uppercase"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-8">
+            <span class="font-bold border-b-2 border-black block mb-2 text-lg">PSYCHOLOGICAL / HISTORICAL PROFILE</span>
+            <p id="pdf-story" class="text-sm leading-relaxed text-justify whitespace-pre-line"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-8 text-sm">
+            <div>
+                <span class="font-bold border-b-2 border-black block mb-2">KNOWN ASSOCIATES</span>
+                <ul id="pdf-rels" class="list-disc pl-4 space-y-1"></ul>
+            </div>
+            <div>
+                <span class="font-bold border-b-2 border-black block mb-2">REGISTERED ASSETS &amp; GEAR</span>
+                <ul id="pdf-assets" class="list-disc pl-4 space-y-1"></ul>
+            </div>
+        </div>
+        <div class="mt-12 text-center text-xs font-bold border-t border-black pt-2 opacity-50">
+            UNAUTHORIZED DISTRIBUTION OF THIS DOCUMENT IS A FEDERAL OFFENSE.
+        </div>
+    </div>
+
+    <div id="char-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-2 md:p-8 opacity-0 transition-opacity duration-300">
+        <div class="scanlines"></div>
+        <div class="glass-panel border border-cyber-blue w-full max-w-7xl h-full max-h-[90vh] flex flex-col md:flex-row relative shadow-[0_0_80px_rgba(0,162,255,0.15)] overflow-hidden">
+            <div id="char-decrypt-screen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center hidden">
+                <i class="fas fa-lock text-6xl text-cyber-red mb-6 animate-pulse"></i>
+                <h2 class="font-mono text-2xl text-cyber-red tracking-[0.5em] mb-4">CLASSIFIED RECORD</h2>
+                <p class="font-mono text-xs text-gray-500 mb-8">Authorization required to decrypt contents.</p>
+                <button onclick="UI.decryptModal()" class="cyber-button click-sfx hover-sfx px-8 py-3 font-bold text-sm tracking-widest">INITIATE DECRYPTION</button>
+            </div>
+
+            <button onclick="UI.closeModal('char-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-cyber-red text-3xl z-30 transition-colors click-sfx hover-sfx"><i class="fas fa-times"></i></button>
+            
+            <div class="w-full md:w-2/5 h-64 md:h-full bg-black relative border-b md:border-b-0 md:border-r border-cyber-blue/30 group">
+                <img id="modal-img" src="" class="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-all duration-500">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none"></div>
+                <div class="absolute bottom-6 left-6 z-10 w-full pr-12">
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <div id="modal-status" class="font-mono text-xs font-bold tracking-widest px-2 py-1 inline-block bg-black/80 border"></div>
+                        <div id="modal-heat" class="font-mono text-xs font-bold tracking-widest px-2 py-1 inline-block bg-black/80 border border-gray-700"></div>
+                    </div>
+                    <div id="modal-threat" class="font-display font-bold uppercase tracking-widest text-2xl mt-1"></div>
+                </div>
+            </div>
+
+            <div class="w-full md:w-3/5 p-6 md:p-10 overflow-y-auto font-mono flex flex-col gap-6 relative bg-cyber-bg/90 custom-scroll">
+                <div class="z-10 border-b border-gray-800 pb-4 flex justify-between items-start">
+                    <div>
+                        <h2 id="modal-name-main" class="text-4xl md:text-6xl font-display font-black text-white uppercase glitch mb-2 tracking-tighter" data-text=""></h2>
+                        <h3 id="modal-alias-sub" class="text-xl text-cyber-blue uppercase tracking-[0.3em]"></h3>
+                    </div>
+                    <button onclick="UI.exportPDF()" class="cyber-button px-4 py-2 text-[10px] font-bold tracking-widest flex items-center gap-2 hover-sfx click-sfx" title="Export as PDF Dossier"><i class="fas fa-file-pdf text-lg"></i> <span class="hidden md:inline">DOSSIER</span></button>
+                </div>
+
+                <div id="modal-status-note-bar" class="hidden z-10 px-4 py-2 font-mono text-xs tracking-widest uppercase flex items-center gap-2" style="background:rgba(0,162,255,0.08);border-left:3px solid var(--neon-blue)">
+                    <i class="fas fa-bolt"></i><span id="modal-status-note-text"></span>
+                </div>
+                <div class="flex flex-wrap gap-4 text-xs z-10">
+                    <div class="bg-gray-900 border border-gray-700 px-3 py-2"><span class="text-gray-500 mr-2">ORG:</span><span id="modal-org" class="font-bold uppercase tracking-widest"></span></div>
+                    <div class="bg-gray-900 border border-gray-700 px-3 py-2"><span class="text-gray-500 mr-2">ID:</span><span id="modal-id" class="text-white"></span></div>
+                </div>
+
+                <div class="z-10 flex-1">
+                    <span class="text-cyber-blue block text-xs mb-3 flex items-center" data-i18n="psych_intel">PSYCHOLOGICAL / HISTORICAL INTEL</span>
+                    <p id="modal-story" class="text-gray-300 text-sm md:text-base leading-relaxed whitespace-pre-line text-justify"></p>
+                    <div id="modal-theme-song-player" class="mt-4"></div>
+                </div>
+
+                <div class="z-10 pt-4 border-t border-gray-800" id="modal-rel-container">
+                    <span class="text-cyber-gold block text-xs mb-3 flex items-center" data-i18n="known_associates">KNOWN ASSOCIATES</span>
+                    <div id="modal-relationships" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 z-10 pt-4 border-t border-gray-800">
+                    <div>
+                        <span class="text-cyber-blue block text-xs mb-3" data-i18n="reg_vehicles">REGISTERED VEHICLES</span>
+                        <div id="modal-vehicles" class="space-y-2"></div>
+                    </div>
+                    <div>
+                        <span class="text-cyber-purple block text-xs mb-3" data-i18n="known_assets">KNOWN ASSETS</span>
+                        <div id="modal-properties" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <div class="z-10 pt-4 border-t border-gray-800">
+                    <span class="text-cyber-omega block text-xs mb-3 flex items-center" data-i18n="head_equipments">Arsenal &amp; Cyberware</span>
+                    <div id="modal-equipments" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                </div>
+
+                <div class="z-10 pt-4 border-t border-gray-800" id="modal-bank-container" style="display:none">
+                    <span class="block text-xs mb-3 tracking-widest uppercase text-cyber-blue"><i class="fas fa-landmark mr-2"></i>BANKA HESAPLARI</span>
+                    <div id="modal-bank-list" class="space-y-1"></div>
+                </div>
+                <div class="z-10 pt-4 border-t border-gray-800" id="modal-rep-container">
+                    <span class="block text-xs mb-3 tracking-widest uppercase" style="color:#a855f7"><i class="fas fa-star-half-alt mr-2"></i>REPUTATION</span>
+                    <div id="modal-rep-content"></div>
+                </div>
+
+                <div class="z-10 mt-auto pt-4 flex justify-end">
+                    <button onclick="const cid=document.getElementById('modal-char-id')?.value;if(cid)UI.openFullProfile(cid)" class="cyber-button click-sfx hover-sfx px-4 py-2 text-xs font-bold tracking-widest mr-2" style="border-color:var(--neon-purple);color:var(--neon-purple)"><i class="fas fa-expand mr-2"></i>TAM EKRAN</button>
+                <a href="#" id="modal-link" target="_blank" class="hidden cyber-button click-sfx hover-sfx px-6 py-2 text-xs font-bold tracking-widest"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="deep_research">START DEEP RESEARCH</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="vehicle-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[110] hidden flex items-center justify-center p-2 md:p-8 opacity-0 transition-opacity duration-300">
+        <div class="scanlines"></div>
+        <div class="glass-panel border border-cyber-blue w-full max-w-4xl h-auto relative shadow-[0_0_80px_rgba(0,162,255,0.15)] overflow-hidden flex flex-col md:flex-row">
+            <button onclick="UI.closeModal('vehicle-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-cyber-red text-3xl z-30 transition-colors click-sfx hover-sfx"><i class="fas fa-times"></i></button>
+            <div class="w-full md:w-1/2 h-64 md:h-auto bg-black relative border-b md:border-b-0 md:border-r border-cyber-blue/30 group">
+                <img id="v-modal-img" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500 mix-blend-luminosity group-hover:mix-blend-normal">
+            </div>
+            <div class="w-full md:w-1/2 p-6 md:p-10 font-mono flex flex-col justify-center bg-cyber-bg/90">
+                <div class="border-b border-gray-800 pb-4 mb-6 relative">
+                    <span class="text-cyber-blue block text-[10px] mb-1 tracking-widest" data-i18n="veh_intel">VEHICLE INTEL</span>
+                    <h2 id="v-modal-model" class="text-3xl font-display font-black text-white uppercase glitch tracking-tighter" data-text=""></h2>
+                    <div id="v-modal-heat" class="absolute top-0 right-0 text-xs font-bold tracking-widest px-2 py-1 bg-black/80 border border-gray-700"></div>
+                </div>
+                <div class="space-y-6 flex-1">
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="plate">PLATE</span><div id="v-modal-plate" class="text-xl text-white tracking-[0.2em] bg-black/50 p-3 border border-gray-800 inline-block"></div></div>
+                    <div class="space-y-2 font-mono text-xs">
+                    <span class="text-gray-600 block text-[10px] tracking-widest mb-2">SPECS</span>
+                    <div id="v-modal-specs-grid" class="space-y-1.5 text-gray-300"></div>
+                    <p id="v-modal-perf" class="text-gray-400 text-xs mt-1"></p>
+                    </div>
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="owner">OWNER</span><div id="v-modal-owner" class="text-lg"></div></div>
+                </div>
+                <div class="z-10 mt-6 pt-4 border-t border-gray-800 flex justify-end">
+                    <a href="#" id="v-modal-link" target="_blank" class="hidden cyber-button click-sfx hover-sfx px-6 py-2 text-xs font-bold tracking-widest"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="deep_research">START DEEP RESEARCH</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="property-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[110] hidden flex items-center justify-center p-2 md:p-8 opacity-0 transition-opacity duration-300">
+        <div class="scanlines"></div>
+        <div class="glass-panel border border-cyber-purple w-full max-w-5xl h-auto relative shadow-[0_0_80px_rgba(176,38,255,0.15)] overflow-hidden flex flex-col md:flex-row">
+            <button onclick="UI.closeModal('property-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-cyber-red text-3xl z-30 transition-colors click-sfx hover-sfx"><i class="fas fa-times"></i></button>
+            <div class="w-full md:w-1/2 h-64 md:h-auto bg-black relative border-b md:border-b-0 md:border-r border-cyber-purple/30 group">
+                <img id="p-modal-img" src="" class="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="w-full md:w-1/2 p-6 md:p-10 font-mono flex flex-col justify-center bg-cyber-bg/90">
+                <div class="border-b border-gray-800 pb-4 mb-6">
+                    <span class="text-cyber-purple block text-[10px] mb-1 tracking-widest" data-i18n="asset_intel">ASSET INTEL</span>
+                    <h2 id="p-modal-name" class="text-3xl font-display font-black text-white uppercase glitch tracking-tighter" data-text=""></h2>
+                </div>
+                <div class="space-y-6 flex-1">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><span class="text-gray-600 block text-xs mb-1" data-i18n="loc">LOC</span><div id="p-modal-loc" class="text-white text-sm"></div></div>
+                        <div><span class="text-gray-600 block text-xs mb-1" data-i18n="type">TYPE</span><div id="p-modal-type" class="text-cyber-purple text-sm font-bold"></div></div>
+                    </div>
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="asset_details">ASSET DETAILS</span><p id="p-modal-desc" class="text-gray-300 text-sm leading-relaxed"></p></div>
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="contact_owner">PRIMARY CONTACT / OWNER</span><div id="p-modal-owner" class="text-lg"></div></div>
+                </div>
+                <div class="z-10 mt-6 pt-4 border-t border-gray-800 flex justify-end">
+                    <a href="#" id="p-modal-link" target="_blank" class="hidden cyber-button click-sfx hover-sfx px-6 py-2 text-xs font-bold tracking-widest"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="deep_research">START DEEP RESEARCH</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="equipment-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[110] hidden flex items-center justify-center p-2 md:p-8 opacity-0 transition-opacity duration-300">
+        <div class="scanlines"></div>
+        <div class="glass-panel border border-cyber-omega w-full max-w-4xl h-auto relative shadow-[0_0_80px_rgba(255,0,85,0.15)] overflow-hidden flex flex-col md:flex-row">
+            <button onclick="UI.closeModal('equipment-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-cyber-red text-3xl z-30 transition-colors click-sfx hover-sfx"><i class="fas fa-times"></i></button>
+            <div class="w-full md:w-1/2 h-64 md:h-auto bg-black relative border-b md:border-b-0 md:border-r border-cyber-omega/30 group">
+                <img id="eq-modal-img" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500 mix-blend-luminosity group-hover:mix-blend-normal">
+            </div>
+            <div class="w-full md:w-1/2 p-6 md:p-10 font-mono flex flex-col justify-center bg-cyber-bg/90">
+                <div class="border-b border-gray-800 pb-4 mb-6 relative">
+                    <span class="text-cyber-omega block text-[10px] mb-1 tracking-widest" data-i18n="eq_intel">TECH INTEL</span>
+                    <h2 id="eq-modal-name" class="text-3xl font-display font-black text-white uppercase glitch tracking-tighter" data-text=""></h2>
+                </div>
+                <div class="space-y-6 flex-1">
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="type">TYPE</span><div id="eq-modal-type" class="text-cyber-omega text-sm font-bold uppercase tracking-widest"></div></div>
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="specs">SPECS</span><p id="eq-modal-desc" class="text-gray-300 text-sm leading-relaxed"></p></div>
+                    <div><span class="text-gray-600 block text-xs mb-1" data-i18n="owner">OWNER</span><div id="eq-modal-owner" class="text-lg"></div></div>
+                </div>
+                <div class="z-10 mt-6 pt-4 border-t border-gray-800 flex justify-end">
+                    <a href="#" id="eq-modal-link" target="_blank" class="hidden cyber-button click-sfx hover-sfx px-6 py-2 text-xs font-bold tracking-widest" style="color:var(--neon-omega); border-color:var(--neon-omega);"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="deep_research">START DEEP RESEARCH</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<!-- Mobile Overlays -->
+<div id="mobile-sidebar-overlay" onclick="UI.closeMobileMenu()"></div>
+<div id="mobile-sidebar-panel"></div>
+<div id="mobile-tabbar">
+  <button onclick="UI.switchTab('dashboard')" data-mtab="dashboard"><i class="fas fa-users"></i><span>PROFİL</span></button>
+  <button onclick="UI.switchTab('contracts')" data-mtab="contracts"><i class="fas fa-crosshairs"></i><span>KONTRAT</span></button>
+  <button onclick="UI.switchTab('radar')" data-mtab="radar"><i class="fas fa-map"></i><span>HARİTA</span></button>
+  <button onclick="UI.switchTab('cases')" data-mtab="cases"><i class="fas fa-folder-open"></i><span>DAVA</span></button>
+  <button onclick="UI.promptAdmin()" data-mtab="admin"><i class="fas fa-terminal"></i><span>ADMİN</span></button>
+</div>
+
+
+<div id="admin-login-modal" class="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4 backdrop-blur-md hidden">
+        <div class="washi-panel p-8 max-w-md w-full text-center relative overflow-hidden" style="background:rgba(12,8,24,0.97);border:1px solid rgba(232,114,138,0.3)">
+            <div class="font-display text-3xl tracking-widest mb-1" style="color:var(--sakura,#e8728a)">東京</div>
+            <p class="font-mono text-[10px] mb-6 tracking-[0.3em]" style="color:rgba(255,255,255,0.3)">OPERATOR IDENTIFICATION — TOKYO_DB</p>
+            <div id="player-select-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+            </div>
+            <div id="admin-login-selected-info" class="hidden mb-4 p-3 font-mono text-xs" style="border:1px solid rgba(232,114,138,0.3)">
+                <span style="color:rgba(255,255,255,0.4)">SEÇİLEN:</span>
+                <span id="admin-login-selected-name" class="ml-2 font-bold tracking-widest" style="color:var(--sakura,#e8728a)"></span>
+            </div>
+            <div class="mb-4 hidden" id="admin-username-wrap">
+              <input type="text" id="admin-username" placeholder="Operatör adı (isteğe bağlı)" class="w-full bg-transparent font-mono text-xs text-white px-3 py-2 focus:outline-none" style="border:1px solid rgba(232,114,138,0.3)">
+            </div>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('admin-login-modal').classList.add('hidden')" class="tokyo-btn w-1/2 py-3 text-xs">İPTAL</button>
+                <button id="admin-login-confirm-btn" onclick="Admin.login()" class="tokyo-btn w-1/2 py-3 text-xs" style="border-color:rgba(232,114,138,0.5);color:rgba(255,255,255,0.3)" disabled>GİRİŞ YAP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── INIT SCREEN (click-to-boot overlay) ── -->
+    <div id="init-screen" class="fixed inset-0 z-[10000] flex items-center justify-center cursor-pointer transition-opacity duration-1000"
+         style="background:#0a0612"
+         onclick="UI.bootSequence()" ontouchstart="UI.bootSequence()">
+      <div class="text-center select-none">
+        <div style="font-size:4rem;margin-bottom:1.5rem;animation:pulse 2s ease-in-out infinite;color:var(--sakura,#e8728a)">⛩</div>
+        <div class="font-display font-black text-2xl tracking-[0.5em] mb-2" style="color:var(--sakura,#e8728a);font-family:'Orbitron',sans-serif">東京_DB</div>
+        <div class="font-mono text-xs tracking-widest animate-pulse" style="color:rgba(255,255,255,0.3);font-family:'Share Tech Mono',monospace">タップしてシステムを起動 — TAP TO BOOT SYSTEM</div>
+      </div>
+    </div>
+
+    <!-- ── BOOT SCREEN (boot log display) ── -->
+    <div id="boot-screen" class="fixed inset-0 z-[9999] flex flex-col items-start justify-end p-12 font-mono text-sm pointer-events-none hidden opacity-100 transition-opacity duration-1000"
+         style="background:#0a0612;color:var(--sakura,#e8728a);font-family:'Share Tech Mono',monospace">
+      <div id="boot-logs" class="space-y-2"></div>
+    </div>
+
+<!-- ── Shared Engine ── -->
+<script src="engine.js?v=1"></script>
+<script>
+// ── TOKYO TEMA SİSTEMİ ──
+const TOKYO_THEMES = {
+  sakura: {
+    '--sakura':'#e8728a', '--torii':'#d04020', '--gold':'#c8a84b',
+    '--bamboo':'#2d7a4e', '--indigo':'#3d4a8a', '--ink':'#ede8f5',
+    '--mist':'#231840',   '--paper':'#160e2a',  '--night':'#0f0f23',
+    '--bg-grid':'#0c0818',
+    body: 'background: radial-gradient(ellipse at 20% 50%, #1a0828 0%, #0c0818 60%)',
+  },
+  hanami: {
+    '--sakura':'#f9a8d4', '--torii':'#db2777', '--gold':'#f0abfc',
+    '--bamboo':'#fbcfe8', '--indigo':'#831843', '--ink':'#fce7f3',
+    '--mist':'#2d0a1e',   '--paper':'#1a0614',  '--night':'#110310',
+    '--bg-grid':'#1a0614',
+    body: 'background: radial-gradient(ellipse at 30% 40%, #2d0a1e 0%, #1a0614 50%, #110310 100%)',
+  },
+  night: {
+    '--sakura':'#818cf8', '--torii':'#6366f1', '--gold':'#a5b4fc',
+    '--bamboo':'#34d399', '--indigo':'#1e1b4b', '--ink':'#e0e7ff',
+    '--mist':'#1e1b4b',   '--paper':'#0f0e1a',  '--night':'#080714',
+    '--bg-grid':'#0a0916',
+    body: 'background: radial-gradient(ellipse at 20% 50%, #1e1b4b 0%, #080714 60%)',
+  },
+  gold: {
+    '--sakura':'#fbbf24', '--torii':'#d97706', '--gold':'#f59e0b',
+    '--bamboo':'#4ade80', '--indigo':'#92400e', '--ink':'#fef3c7',
+    '--mist':'#1c1408',   '--paper':'#120e04',  '--night':'#0a0802',
+    '--bg-grid':'#110d04',
+    body: 'background: radial-gradient(ellipse at 20% 50%, #1c1408 0%, #0a0802 60%)',
+  },
+  forest: {
+    '--sakura':'#4ade80', '--torii':'#16a34a', '--gold':'#a3e635',
+    '--bamboo':'#86efac', '--indigo':'#14532d', '--ink':'#f0fdf4',
+    '--mist':'#052e16',   '--paper':'#031a0d',  '--night':'#020f07',
+    '--bg-grid':'#041208',
+    body: 'background: radial-gradient(ellipse at 20% 50%, #052e16 0%, #020f07 60%)',
+  },
+  torii: {
+    '--sakura':'#fb923c', '--torii':'#ea580c', '--gold':'#fbbf24',
+    '--bamboo':'#fed7aa', '--indigo':'#7c2d12', '--ink':'#fff7ed',
+    '--mist':'#1c0a00',   '--paper':'#120600',  '--night':'#0a0300',
+    '--bg-grid':'#110400',
+    body: 'background: radial-gradient(ellipse at 20% 50%, #1c0a00 0%, #0a0300 60%)',
+  },
+};
+
+// Engine'in applyTheme'ini Tokyo için override et
+const _origApplyTheme = window.UI ? null : null; // UI henüz yok, DOMContentLoaded'da override
+document.addEventListener('DOMContentLoaded', function() {
+  const origApply = UI.applyTheme.bind(UI);
+  UI.applyTheme = function(name) {
+    const t = TOKYO_THEMES[name];
+    if (t) {
+      const r = document.documentElement.style;
+      Object.entries(t).forEach(([k,v]) => { if(k.startsWith('--')) r.setProperty(k, v); });
+      // Body background
+      if (t.body) document.body.style.cssText = (document.body.style.cssText || '') + ';' + t.body;
+      // Hanami (açık tema) için özel class
+      document.body.classList.toggle('theme-light', name === 'hanami');
+      localStorage.setItem(CFG.themeKey, name);
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === name));
+    } else {
+      origApply(name); // NYC temaları için fallback
+    }
+  };
+  // Kayıtlı temayı uygula
+  const saved = localStorage.getItem(CFG.themeKey);
+  if (saved) UI.applyTheme(saved);
+});
+
+// ── TOKYO SFX OVERRIDE ──
+// Engine yüklendikten sonra SFX'i Tokyo'ya özel seslerle değiştir
+document.addEventListener('DOMContentLoaded', function() {
+  if (!window.SFX) return;
+
+  // Shamisen/koto tarzı: kısa, yumuşak, pentatonik
+  // Pentatonik notalar: 294 (D4), 330 (E4), 392 (G4), 440 (A4), 523 (C5), 587 (D5)
+  const PENTA = [294, 330, 392, 440, 523, 587, 659, 784];
+
+  // Koto teli gibi: hızlı attack, uzun decay, sine dalgası
+  SFX._kotoPluck = function(freq, vol) {
+    if (this.isMuted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    // Hafif detune - gerçek enstrüman titremesi
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.998, t + 0.3);
+    gain.gain.setValueAtTime(vol || 0.025, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2.01, t); // hafif overtone
+    gain2.gain.setValueAtTime((vol || 0.025) * 0.15, t);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc2.connect(gain2); gain2.connect(this.ctx.destination);
+    osc.start(t); osc.stop(t + 0.55);
+    osc2.start(t); osc2.stop(t + 0.3);
+  };
+
+  // hover: hafif koto dokunuşu - yüksek, kısa
+  SFX.hover = function() {
+    const freq = PENTA[Math.floor(Math.random() * 3) + 4]; // üst oktav
+    this._kotoPluck(freq, 0.012);
+  };
+
+  // click: orta koto vuruşu
+  SFX.click = function() {
+    const freq = PENTA[Math.floor(Math.random() * 4) + 2];
+    this._kotoPluck(freq, 0.022);
+  };
+
+  // decrypt: pentatonik arpej - koto glissando gibi
+  SFX.decrypt = function() {
+    if (this.isMuted || !this.ctx) return;
+    const notes = [392, 440, 523, 587, 659, 784];
+    notes.forEach((f, i) => {
+      setTimeout(() => this._kotoPluck(f, 0.018), i * 60);
+    });
+  };
+
+  // warning: taiko davulu gibi derin vuruş
+  SFX.warning = function() {
+    if (this.isMuted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Derin taiko: düşük frekanslı sin + pitch drop
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.4);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(t); osc.stop(t + 1.3);
+    // Üzerine metalik overtone (kane çanı gibi)
+    setTimeout(() => {
+      if (this.isMuted || !this.ctx) return;
+      const t2 = this.ctx.currentTime;
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(523, t2);
+      gain2.gain.setValueAtTime(0.025, t2);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 1.8);
+      osc2.connect(gain2); gain2.connect(this.ctx.destination);
+      osc2.start(t2); osc2.stop(t2 + 2);
+    }, 80);
+  };
+
+  // updateUI - sakura rengiyle
+  SFX.updateUI = function() {
+    const btn = document.getElementById('sfx-toggle-btn');
+    if(btn) {
+      btn.innerHTML = this.isMuted
+        ? '<i class="fas fa-volume-mute" style="color:rgba(255,255,255,0.3)"></i>'
+        : '<i class="fas fa-volume-up" style="color:var(--sakura,#e8728a)"></i>';
+    }
+  };
+});
+</script>
+
+
+<script>
+// Cursor
+(function(){
+  const cur=document.getElementById('custom-cursor');
+  if(!cur||window.innerWidth<=768||/Android|iPhone|iPad/i.test(navigator.userAgent)){if(cur)cur.style.display='none';return;}
+  document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+  document.addEventListener('mouseover',e=>{if(e.target.closest('button,a,[onclick],input,textarea,select,.cursor-pointer,.tokyo-btn,.nav-link,.tokyo-card'))document.body.classList.add('cursor-hover');});
+  document.addEventListener('mouseout',e=>{if(e.target.closest('button,a,[onclick],input,textarea,select,.cursor-pointer,.tokyo-btn,.nav-link,.tokyo-card'))document.body.classList.remove('cursor-hover');});
+  document.addEventListener('mousedown',()=>document.body.classList.add('cursor-click'));
+  document.addEventListener('mouseup',()=>document.body.classList.remove('cursor-click'));
+})();
+// Sakura petals
+(function(){
+  const c=document.getElementById('petal-container');if(!c)return;
+  for(let i=0;i<22;i++){const p=document.createElement('div');p.className='petal';p.style.left=Math.random()*100+'vw';p.style.animationDuration=(8+Math.random()*14)+'s';p.style.animationDelay=(Math.random()*18)+'s';p.style.width=(5+Math.random()*6)+'px';p.style.height=(7+Math.random()*6)+'px';p.style.opacity=(0.25+Math.random()*.4).toString();p.style.transform='rotate('+Math.random()*360+'deg)';c.appendChild(p);}
+})();
+// Tokyo player grid + login
+function renderTokyoPlayerGrid(){
+  const grid=document.getElementById('tokyo-player-select-grid');if(!grid)return;
+  const players=window.NYC_PLAYERS||[];
+  grid.innerHTML=players.map(p=>`<button class="player-select-btn glass-panel p-4 border-2 border-transparent cursor-pointer flex flex-col items-center gap-2 transition-all" style="color:${p.color}" data-player-id="${p.id}" onclick="tokyoSelectPlayer('${p.id}')"><div class="w-12 h-12 rounded-full border-2 flex items-center justify-center font-display font-black text-xl" style="border-color:${p.color};background:${p.color}18">${p.name[0]}</div><span class="font-mono text-xs tracking-widest">${p.name.toUpperCase()}</span></button>`).join('');
+  if(window.currentPlayer){
+    document.querySelectorAll('#tokyo-player-select-grid .player-select-btn').forEach(b=>{if(b.dataset.playerId===window.currentPlayer.id){b.style.borderColor=window.currentPlayer.color;b.style.background=window.currentPlayer.color+'18';}});
+    tokyoShowLoginSelection(window.currentPlayer);
+  }
+}
+function tokyoSelectPlayer(id){
+  const p=(window.NYC_PLAYERS||[]).find(x=>x.id===id);if(!p)return;
+  window._tokyoSelectedPlayer=p;
+  document.querySelectorAll('#tokyo-player-select-grid .player-select-btn').forEach(b=>{b.style.borderColor=b.dataset.playerId===id?p.color:'transparent';b.style.background=b.dataset.playerId===id?p.color+'22':'';});
+  tokyoShowLoginSelection(p);
+}
+function tokyoShowLoginSelection(p){
+  const info=document.getElementById('tokyo-login-selected-info');
+  const name=document.getElementById('tokyo-login-selected-name');
+  const btn=document.getElementById('tokyo-login-confirm-btn');
+  if(info)info.classList.remove('hidden');
+  if(name){name.textContent=p.name.toUpperCase();name.style.color=p.color;}
+  if(btn){btn.removeAttribute('disabled');btn.style.borderColor=p.color;btn.style.color=p.color;}
+}
+function confirmLogin(){
+  const p=window._tokyoSelectedPlayer||window._selectedPlayer;if(!p)return;
+  window.currentPlayer=p;window.currentOperator=p.name;
+  localStorage.setItem(CFG.playerKey,JSON.stringify(p));
+  const lm=document.getElementById('login-modal');
+  const aw=document.getElementById('app-wrapper');
+  if(lm){lm.style.transition='opacity .6s';lm.style.opacity='0';setTimeout(()=>lm.style.display='none',600);}
+  if(aw)aw.style.opacity='1';
+  UI.initApp().catch(e=>console.error(e));
+}
+document.addEventListener('DOMContentLoaded',function(){
+  const saved=localStorage.getItem(CFG.playerKey);
+  if(saved){try{const p=JSON.parse(saved);window.currentOperator=p.name;window.currentPlayer=p;}catch(e){}}
+  try{renderTokyoPlayerGrid();}catch(e){}
+  if(window.currentPlayer){
+    document.getElementById('login-modal').style.display='none';
+    document.getElementById('app-wrapper').style.opacity='1';
+    UI.initApp().catch(e=>console.error(e));
+  }
+});
+</script>
+</body></html>
