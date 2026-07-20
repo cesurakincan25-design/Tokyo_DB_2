@@ -640,6 +640,16 @@ input:focus, select:focus, textarea:focus {
 <!-- ── SUPABASE ── -->
 
 <!-- ── CONFIG önce yüklenmeli ── -->
+<!-- Firebase SDK (modular, compat wrapper olmadan) -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import * as firestore from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  // Global'e aç - config.js kullanabilsin
+  window._fbSDK = { initializeApp };
+  window._fbFirestore = firestore;
+  window._fbFirestoreReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <script src="config.js?v=1"></script>
 </script>
 </head>
