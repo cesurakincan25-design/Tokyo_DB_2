@@ -3,9 +3,8 @@
  * sharedrpengine repo → cesurakincan25-design/sharedrpengine
  *
  * Config değerleri window.RPCONFIG'den okunur:
- *   RPCONFIG.supaUrl       — Supabase project URL
- *   RPCONFIG.supaKey       — Supabase publishable key
- *   RPCONFIG.tableName     — 'nyc_db' veya 'tokyo_db'
+ *   RPCONFIG.tableName     — Firestore koleksiyonu ('nyc_db', 'tokyo_db', 'tokyo_2_db')
+ *   RPCONFIG.firebaseConfig — Firebase config objesi (window._fbDb init için)
  *   RPCONFIG.storageKey    — localStorage anahtarı ('nyc_db_v10' vs)
  *   RPCONFIG.storageLegacy — eski localStorage anahtarı (migration için)
  *   RPCONFIG.sfxKey        — SFX mute localStorage anahtarı
@@ -25,16 +24,11 @@ if (!window.RPCONFIG) {
 }
 var CFG = window.RPCONFIG;
 
-// Supabase credentials (config'den al)
-const SUPA_URL = CFG.supaUrl;
-const SUPA_KEY = CFG.supaKey;
-const SUPA_TABLE = CFG.tableName;
-const SUPA_HEADERS = {
-  'apikey': SUPA_KEY,
-  'Authorization': 'Bearer ' + SUPA_KEY,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=minimal'
-};
+// Firebase SDK (CDN'den yüklenir — index.html'de script tag gerekli)
+// Config'den al
+var FB_COLLECTION = CFG.tableName; // 'nyc_db', 'tokyo_db', 'tokyo_2_db'
+var FB_BACKUP_COL = CFG.tableName + '_backups';
+var FB_AUDIT_COL  = CFG.tableName + '_audit_logs';
 
 // Oyuncu listesi - NYC_PLAYERS yerine config'den oku
 window.NYC_PLAYERS = CFG.players || [];
@@ -52,275 +46,230 @@ var currentLang = 'tr';
 var currentOpenedChar = null;
 
 
+// ── FIREBASE SYNC ──────────────────────────────────────────────────────────
+// Firebase SDK CDN üzerinden yüklenir (index.html'de script tag gerekli)
+// window._fbDb objesi config.js'de init edilir
+
 var SupaSync = {
-        _saving: false,
-        _pendingSave: false,
-        _lastRemoteHash: null,
-        _pollInterval: null,
+    _saving: false,
+    _pendingSave: false,
+    _lastRemoteHash: null,
+    _pollInterval: null,
+    _unsubscribe: null,
 
-        // Supabase'den veri çek
-        async load() {
-            try {
-                const res = await fetch(SUPA_URL + '/rest/v1/' + SUPA_TABLE + '?id=eq.main&select=data,updated_at,updated_by', {
-                    headers: SUPA_HEADERS
-                });
-                if(!res.ok) throw new Error('HTTP ' + res.status);
-                const rows = await res.json();
-                if(rows && rows[0] && rows[0].data && Object.keys(rows[0].data).length > 0) {
-                    return { data: rows[0].data, updatedAt: rows[0].updated_at, updatedBy: rows[0].updated_by };
-                }
-                return null;
-            } catch(e) {
-                console.warn('[SupaSync] Load failed:', e.message);
-                return null;
-            }
-        },
+    // Firebase'den Firestore db al
+    _db() {
+        return window._fbDb;
+    },
 
-        // Supabase'e veri yaz (debounced)
-        async save(data, operator) {
-            // Güvenlik: boş data asla yazılmasın
-            const charCount = (data && data.characters) ? data.characters.length : 0;
-            const orgCount = (data && data.organizations) ? data.organizations.length : 0;
-            const vehCount = (data && data.vehicles) ? data.vehicles.length : 0;
-            if (!data || (charCount === 0 && orgCount === 0 && vehCount === 0)) {
-                console.warn('[SupaSync] Boş data yazma engellendi');
-                return;
-            }
-            if(this._saving) {
-                this._pendingSave = true;
-                return;
-            }
-            this._saving = true;
-
-            // Conflict detection devre dışı - sadece yaz
-
-            const saveTimestamp = new Date().toISOString();
-            try {
-                const payload = {
-                    data: data,
-                    updated_by: operator || window.currentOperator || 'SYSTEM',
-                    updated_at: saveTimestamp
-                };
-                const res = await fetch(SUPA_URL + '/rest/v1/' + SUPA_TABLE + '?id=eq.main', {
-                    method: 'PATCH',
-                    headers: SUPA_HEADERS,
-                    body: JSON.stringify(payload)
-                });
-                if(!res.ok) {
-                    const err = await res.text();
-                    throw new Error('HTTP ' + res.status + ': ' + err);
-                }
-                // Sync göstergesi güncelle
-                SupaSync._lastSavedAt = saveTimestamp;
-                SupaSync._lastRemoteHash = null; // Polling hash'i sıfırla
-                SupaSync.updateIndicator('saved');
-                // Otomatik backup (async, kaydetmeyi bloke etmez)
-                setTimeout(() => SupaSync.takeBackup(data, operator || window.currentOperator || window.currentPlayer?.name), 500);
-            } catch(e) {
-                console.error('[SupaSync] Save failed:', e.message);
-                SupaSync.updateIndicator('error');
-            } finally {
-                this._saving = false;
-                if(this._pendingSave) {
-                    this._pendingSave = false;
-                    setTimeout(() => SupaSync.save(DB, window.currentOperator), 1000); // DB her zaman güncel
-                }
-            }
-        },
-
-        // Periyodik sync: başkası değiştirdiyse çek
-        startPolling(intervalMs) {
-            if(this._pollInterval) clearInterval(this._pollInterval);
-            this._pollInterval = setInterval(async () => {
-                try {
-                    const remote = await this.load();
-                    if(!remote) return;
-                    // Hash karşılaştır
-                    const remoteHash = remote.updatedAt || '';
-                    // İlk çalışmada sadece hash'i kaydet, veri çekme
-                    if(!this._lastRemoteHash) {
-                        this._lastRemoteHash = remoteHash;
-                        return;
-                    }
-                    // Hash değiştiyse kontrol et
-                    if(remoteHash !== this._lastRemoteHash) {
-                        this._lastRemoteHash = remoteHash;
-                        const remoteOp = remote.updatedBy || 'UNKNOWN';
-                        const localOp  = window.currentOperator || 'SYSTEM';
-                        // Sadece başkası kaydettiyse VE kendi son save'imizden sonraysa uygula
-                        const remoteTime  = new Date(remote.updatedAt || 0).getTime();
-                        const lastSavedAt = new Date(this._lastSavedAt || 0).getTime();
-                        const isMine = remoteOp === localOp || (localOp !== 'SYSTEM' && remoteOp === localOp);
-                        const isAfterMySave = remoteTime > lastSavedAt + 2000; // 2sn tolerans
-                        if(!isMine && isAfterMySave) {
-                            // Güvenli güncelleme: sadece karakter sayısı artmışsa veya
-                            // kimse aktif düzenleme yapmıyorsa uygula
-                            const remoteChars = (remote.data.characters || []).filter(c => !c.isArchived);
-                            const localChars  = (DB.characters || []).filter(c => !c.isArchived);
-                            // Remote'da daha fazla karakter varsa güvenle uygula
-                            // Eşit veya az ise sadece bildir, override etme
-                            if(remoteChars.length >= localChars.length) {
-                                const parsed = Storage.migrateDB(remote.data);
-                                Object.assign(DB, parsed);
-                                Storage.saveLocal(DB);
-                                try { UI.renderAll(); } catch(e) {}
-                                try { Admin.refreshAuditPanel(); } catch(e) {}
-                                SupaSync.updateIndicator('synced');
-                                SupaSync.showSyncToast(remoteOp);
-                            } else {
-                                // Remote'da daha az karakter var - override etme, sadece bildir
-                                console.warn('[SupaSync] Remote has fewer chars, skipping override');
-                                SupaSync.updateIndicator('synced');
-                            }
-                        }
-                    }
-                } catch(e) { /* polling sessiz fail */ }
-            }, intervalMs || 30000); // 30 saniyede bir kontrol
-        },
-
-        updateIndicator(state) {
-            const el = document.getElementById('sync-indicator');
-            if(!el) return;
-            const states = {
-                saving:  { color: '#f59e0b', icon: 'fa-spinner fa-spin', text: 'SYNCING...' },
-                saved:   { color: '#00ff88', icon: 'fa-cloud',           text: 'SYNCED'    },
-                error:   { color: '#ff2a2a', icon: 'fa-exclamation-triangle', text: 'SYNC ERR' },
-                synced:  { color: '#a855f7', icon: 'fa-sync',            text: 'UPDATED'   },
-                offline: { color: '#6b7280', icon: 'fa-wifi-slash',      text: 'LOCAL'     },
-                backup:  { color: '#06b6d4', icon: 'fa-shield-alt',      text: 'AUTO BACKUP' }
-            };
-            const s = states[state] || states.saved;
-            el.style.color = s.color;
-            el.innerHTML = `<i class="fas ${s.icon} mr-1"></i>${s.text}`;
-        },
-
-        showSyncToast(operator) {
-            try {
-                if(typeof showSaveToast === 'function') {
-                    showSaveToast('⟳ ' + operator + ' güncelledi — yenilendi');
-                }
-            } catch(e) {}
-        }
-    };
-    // ── OTOMATİK BACKUP SİSTEMİ ──
-    SupaSync.takeBackup = async function(data, operator) {
+    // Ana dokümanı çek
+    async load() {
         try {
-            const charCount = (data.characters || []).filter(c => !c.isArchived).length;
-            // Son backup'ı kontrol et - aynı veriyi tekrar kaydetme
-            const lastRes = await fetch(SUPA_URL + '/rest/v1/backups?order=created_at.desc&limit=1', {
-                headers: SUPA_HEADERS
-            });
-            if(lastRes.ok) {
-                const lastRows = await lastRes.json();
-                if(lastRows && lastRows[0]) {
-                    const lastCount = lastRows[0].char_count || 0;
-                    const lastData  = lastRows[0].data || {};
-                    // Karakter sayısı düştüyse MUTLAKA backup al (silme koruması)
-                    const currentCount = charCount;
-                    if(currentCount < lastCount) {
-                        console.warn('[Backup] Karakter sayısı düştü! ' + lastCount + ' → ' + currentCount + '. Yedek alınıyor...');
-                    } else if(currentCount === lastCount) {
-                        // Aynı sayıda - son 5 dakikada backup var mı?
-                        const lastTime = new Date(lastRows[0].created_at).getTime();
-                        const now = Date.now();
-                        if(now - lastTime < 5 * 60 * 1000) {
-                            return; // 5 dakika içinde backup alındı, atla
-                        }
-                    }
+            const db = this._db();
+            if(!db) throw new Error('Firebase init olmadı');
+            const { doc, getDoc } = window._fbFirestore;
+            const ref = doc(db, FB_COLLECTION, 'main');
+            const snap = await getDoc(ref);
+            if(snap.exists()) {
+                const d = snap.data();
+                if(d.data && Object.keys(d.data).length > 0) {
+                    return { data: d.data, updatedAt: d.updated_at, updatedBy: d.updated_by };
                 }
             }
-            // Backup al
-            await fetch(SUPA_URL + '/rest/v1/backups', {
-                method: 'POST',
-                headers: {...SUPA_HEADERS, 'Prefer': 'return=minimal'},
-                body: JSON.stringify({
-                    saved_by: operator || window.currentOperator || window.currentPlayer?.name || 'SYSTEM',
-                    char_count: charCount,
-                    data: data
-                })
-            });
-            // Eski backupları temizle - sadece son 20'yi tut
-            const allRes = await fetch(SUPA_URL + '/rest/v1/backups?order=created_at.desc&select=id', {
-                headers: SUPA_HEADERS
-            });
-            if(allRes.ok) {
-                const allRows = await allRes.json();
-                if(allRows && allRows.length > 20) {
-                    const toDelete = allRows.slice(20).map(r => r.id);
-                    for(const did of toDelete) {
-                        await fetch(SUPA_URL + '/rest/v1/backups?id=eq.' + did, {
-                            method: 'DELETE',
-                            headers: SUPA_HEADERS
-                        });
-                    }
-                }
-            }
-            console.log('[Backup] ✓ Otomatik yedek alındı. Karakter sayısı:', charCount);
-            SupaSync.updateIndicator('backup');
-            setTimeout(() => SupaSync.updateIndicator('saved'), 3000);
+            return null;
         } catch(e) {
-            console.warn('[Backup] Yedek alınamadı:', e.message);
+            console.warn('[FireSync] Load failed:', e.message);
+            return null;
         }
-    };
+    },
 
-    // Backup listesini çek
-    SupaSync.listBackups = async function() {
+    // Firestore'a veri yaz
+    async save(data, operator) {
+        const charCount = (data && data.characters) ? data.characters.length : 0;
+        const orgCount  = (data && data.organizations) ? data.organizations.length : 0;
+        const vehCount  = (data && data.vehicles) ? data.vehicles.length : 0;
+        if(!data || (charCount === 0 && orgCount === 0 && vehCount === 0)) {
+            console.warn('[FireSync] Boş data yazma engellendi');
+            return;
+        }
+        if(this._saving) { this._pendingSave = true; return; }
+        this._saving = true;
+        const saveTimestamp = new Date().toISOString();
         try {
-            const res = await fetch(SUPA_URL + '/rest/v1/backups?order=created_at.desc&limit=20&select=id,created_at,saved_by,char_count', {
-                headers: SUPA_HEADERS
+            const db = this._db();
+            const { doc, setDoc } = window._fbFirestore;
+            const ref = doc(db, FB_COLLECTION, 'main');
+            await setDoc(ref, {
+                data: data,
+                updated_by: operator || window.currentOperator || 'SYSTEM',
+                updated_at: saveTimestamp
             });
-            if(!res.ok) return [];
-            return await res.json();
-        } catch(e) { return []; }
-    };
-
-    // Belirli bir backup'ı restore et
-    SupaSync.restoreBackup = async function(backupId) {
-        try {
-            const res = await fetch(SUPA_URL + '/rest/v1/backups?id=eq.' + backupId + '&select=data,created_at,saved_by,char_count', {
-                headers: SUPA_HEADERS
-            });
-            if(!res.ok) return false;
-            const rows = await res.json();
-            if(!rows || !rows[0]) return false;
-            const backupData = rows[0].data;
-            // Önce mevcut durumu backup al
-            await SupaSync.takeBackup(DB, 'RESTORE_PRE_' + (window.currentOperator || 'SYSTEM'));
-            // Restore et
-            const parsed = Storage.migrateDB(backupData);
-            Object.assign(DB, parsed);
-            Storage.saveLocal(DB);
-            await SupaSync.save(DB, window.currentOperator);
-            try { UI.renderAll(); } catch(e) {}
-            return true;
+            SupaSync._lastSavedAt = saveTimestamp;
+            SupaSync._lastRemoteHash = saveTimestamp;
+            SupaSync.updateIndicator('saved');
+            setTimeout(() => SupaSync.takeBackup(data, operator || window.currentOperator || window.currentPlayer?.name), 500);
         } catch(e) {
-            console.error('[Backup] Restore hatası:', e.message);
-            return false;
+            console.error('[FireSync] Save failed:', e.message);
+            SupaSync.updateIndicator('error');
+        } finally {
+            this._saving = false;
+            if(this._pendingSave) {
+                this._pendingSave = false;
+                setTimeout(() => SupaSync.save(DB, window.currentOperator), 1000);
+            }
         }
-    };
+    },
 
-    SupaSync.pushAuditLog = async function(entry) {
-            try {
-                await fetch(SUPA_URL + '/rest/v1/audit_logs', {
-                    method: 'POST',
-                    headers: {...SUPA_HEADERS, 'Prefer': 'return=minimal'},
-                    body: JSON.stringify({
-                        log_id: entry.id, type: entry.type, message: entry.message,
-                        operator: entry.operator || 'SYSTEM',
-                        record_id: entry.recordId || null,
-                        ts: entry.timestamp || new Date().toISOString()
-                    })
-                });
-            } catch(e) {}
+    // Realtime listener ile polling yerine anlık güncelleme
+    startPolling(intervalMs) {
+        try {
+            const db = this._db();
+            if(!db) return;
+            const { doc, onSnapshot } = window._fbFirestore;
+            const ref = doc(db, FB_COLLECTION, 'main');
+            if(this._unsubscribe) this._unsubscribe();
+            this._unsubscribe = onSnapshot(ref, (snap) => {
+                if(!snap.exists()) return;
+                const d = snap.data();
+                const remoteHash = d.updated_at || '';
+                if(!this._lastRemoteHash) { this._lastRemoteHash = remoteHash; return; }
+                if(remoteHash === this._lastRemoteHash) return;
+                this._lastRemoteHash = remoteHash;
+                const remoteOp   = d.updated_by || 'UNKNOWN';
+                const localOp    = window.currentOperator || 'SYSTEM';
+                const remoteTime = new Date(d.updated_at || 0).getTime();
+                const lastSaved  = new Date(this._lastSavedAt || 0).getTime();
+                const isMine     = remoteOp === localOp;
+                const isAfter    = remoteTime > lastSaved + 2000;
+                if(!isMine && isAfter && d.data) {
+                    const remoteChars = (d.data.characters || []).filter(c => !c.isArchived);
+                    const localChars  = (DB.characters || []).filter(c => !c.isArchived);
+                    if(remoteChars.length >= localChars.length) {
+                        const parsed = Storage.migrateDB(d.data);
+                        Object.assign(DB, parsed);
+                        Storage.saveLocal(DB);
+                        try { UI.renderAll(); } catch(e) {}
+                        try { Admin.refreshAuditPanel(); } catch(e) {}
+                        SupaSync.updateIndicator('synced');
+                        SupaSync.showSyncToast(remoteOp);
+                    } else {
+                        console.warn('[FireSync] Remote has fewer chars, skipping');
+                        SupaSync.updateIndicator('synced');
+                    }
+                }
+            }, (err) => { console.warn('[FireSync] Snapshot error:', err.message); });
+        } catch(e) { console.warn('[FireSync] startPolling error:', e.message); }
+    },
+
+    updateIndicator(state) {
+        const el = document.getElementById('sync-indicator');
+        if(!el) return;
+        const states = {
+            saving:  { color: '#f59e0b', icon: 'fa-spinner fa-spin', text: 'SYNCING...' },
+            saved:   { color: '#00ff88', icon: 'fa-cloud',           text: 'SYNCED'    },
+            error:   { color: '#ff2a2a', icon: 'fa-exclamation-triangle', text: 'SYNC ERR' },
+            synced:  { color: '#a855f7', icon: 'fa-sync',            text: 'UPDATED'   },
+            offline: { color: '#6b7280', icon: 'fa-wifi-slash',      text: 'LOCAL'     },
+            backup:  { color: '#06b6d4', icon: 'fa-shield-alt',      text: 'AUTO BACKUP' }
         };
-        SupaSync.fetchAuditLogs = async function() {
-            try {
-                const res = await fetch(SUPA_URL + '/rest/v1/audit_logs?order=ts.desc&limit=200', {headers: SUPA_HEADERS});
-                if(!res.ok) return null;
-                return await res.json();
-            } catch(e) { return null; }
-        };
-    window.SupaSync = SupaSync;
+        const s = states[state] || states.saved;
+        el.style.color = s.color;
+        el.innerHTML = '<i class="fas ' + s.icon + ' mr-1"></i>' + s.text;
+    },
+
+    showSyncToast(operator) {
+        try { if(typeof showSaveToast === 'function') showSaveToast('⟳ ' + operator + ' güncelledi — yenilendi'); } catch(e) {}
+    }
+};
+
+// ── BACKUP SİSTEMİ (Firebase) ──────────────────────────────────────────
+SupaSync.takeBackup = async function(data, operator) {
+    try {
+        const db = SupaSync._db();
+        if(!db) return;
+        const { collection, addDoc, query, orderBy, limit, getDocs, deleteDoc, doc } = window._fbFirestore;
+        const charCount = (data.characters || []).filter(c => !c.isArchived).length;
+        // Son backup kontrol - 5 dakika içinde aynı sayıda ise atla
+        const q = query(collection(db, FB_BACKUP_COL), orderBy('created_at', 'desc'), limit(1));
+        const snap = await getDocs(q);
+        if(!snap.empty) {
+            const last = snap.docs[0].data();
+            const lastTime = new Date(last.created_at || 0).getTime();
+            if(charCount === (last.char_count || 0) && Date.now() - lastTime < 5 * 60 * 1000) return;
+            if(charCount < (last.char_count || 0)) {
+                console.warn('[Backup] Karakter sayısı düştü! ' + last.char_count + ' → ' + charCount);
+            }
+        }
+        // Backup yaz
+        await addDoc(collection(db, FB_BACKUP_COL), {
+            created_at: new Date().toISOString(),
+            saved_by: operator || window.currentOperator || 'SYSTEM',
+            char_count: charCount,
+            data: data
+        });
+        // 20'den fazlaysa eskiyi sil
+        const allSnap = await getDocs(query(collection(db, FB_BACKUP_COL), orderBy('created_at', 'desc')));
+        if(allSnap.docs.length > 20) {
+            const toDelete = allSnap.docs.slice(20);
+            for(const d of toDelete) await deleteDoc(doc(db, FB_BACKUP_COL, d.id));
+        }
+        console.log('[Backup] ✓ Yedek alındı. Karakter:', charCount);
+        SupaSync.updateIndicator('backup');
+        setTimeout(() => SupaSync.updateIndicator('saved'), 3000);
+    } catch(e) { console.warn('[Backup] Yedek alınamadı:', e.message); }
+};
+
+SupaSync.listBackups = async function() {
+    try {
+        const db = SupaSync._db();
+        const { collection, query, orderBy, limit, getDocs } = window._fbFirestore;
+        const q = query(collection(db, FB_BACKUP_COL), orderBy('created_at', 'desc'), limit(20));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { return []; }
+};
+
+SupaSync.restoreBackup = async function(backupId) {
+    try {
+        const db = SupaSync._db();
+        const { doc, getDoc } = window._fbFirestore;
+        const snap = await getDoc(doc(db, FB_BACKUP_COL, backupId));
+        if(!snap.exists()) return false;
+        const backupData = snap.data().data;
+        await SupaSync.takeBackup(DB, 'RESTORE_PRE_' + (window.currentOperator || 'SYSTEM'));
+        const parsed = Storage.migrateDB(backupData);
+        Object.assign(DB, parsed);
+        Storage.saveLocal(DB);
+        await SupaSync.save(DB, window.currentOperator);
+        try { UI.renderAll(); } catch(e) {}
+        return true;
+    } catch(e) { console.error('[Backup] Restore hatası:', e.message); return false; }
+};
+
+SupaSync.pushAuditLog = async function(entry) {
+    try {
+        const db = SupaSync._db();
+        const { collection, addDoc } = window._fbFirestore;
+        await addDoc(collection(db, FB_AUDIT_COL), {
+            log_id: entry.id, type: entry.type, message: entry.message,
+            operator: entry.operator || 'SYSTEM',
+            record_id: entry.recordId || null,
+            ts: entry.timestamp || new Date().toISOString()
+        });
+    } catch(e) {}
+};
+
+SupaSync.fetchAuditLogs = async function() {
+    try {
+        const db = SupaSync._db();
+        const { collection, query, orderBy, limit, getDocs } = window._fbFirestore;
+        const q = query(collection(db, FB_AUDIT_COL), orderBy('ts', 'desc'), limit(200));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+    } catch(e) { return null; }
+};
+
+window.SupaSync = SupaSync;
 var SFX = {
    ctx: null,
    isMuted: localStorage.getItem(CFG.sfxKey) === 'true',
